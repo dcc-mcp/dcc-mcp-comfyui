@@ -1,0 +1,72 @@
+tools:
+  - name: validate_workflow
+    description: Validate a ComfyUI workflow JSON against the running ComfyUI instance.
+    parameters:
+      workflow:
+        type: object
+        description: Workflow JSON object to validate.
+        required: true
+    script: validate_workflow.py
+    affinity: any
+    execution: sync
+    timeout_hint_secs: 10
+
+  - name: submit_workflow
+    description: Submit a workflow JSON to ComfyUI for execution.
+    parameters:
+      workflow:
+        type: object
+        description: Workflow JSON to execute.
+        required: true
+      wait:
+        type: boolean
+        description: Wait for completion before returning.
+        required: false
+        default: false
+      timeout:
+        type: number
+        description: Max wait time in seconds if wait=true.
+        required: false
+        default: 120
+    script: submit_workflow.py
+    affinity: any
+    execution: sync
+    timeout_hint_secs: 300
+
+  - name: query_job_status
+    description: Query the execution status and outputs of a submitted prompt.
+    parameters:
+      prompt_id:
+        type: string
+        description: The prompt ID returned by submit_workflow.
+        required: true
+    script: query_job_status.py
+    affinity: any
+    execution: sync
+    timeout_hint_secs: 10
+
+  - name: get_artifact
+    description: Get the download URL and metadata for a specific output artifact.
+    parameters:
+      prompt_id:
+        type: string
+        description: The prompt ID from submit_workflow.
+        required: true
+      filename:
+        type: string
+        description: Output filename (e.g. 'ComfyUI_00001_.png').
+        required: true
+      subfolder:
+        type: string
+        description: Subfolder path within the output directory.
+        required: false
+        default: ""
+      folder_type:
+        type: string
+        description: Folder type (output, input, or temp).
+        required: false
+        default: "output"
+    script: get_artifact.py
+    affinity: any
+    execution: sync
+    timeout_hint_secs: 10
