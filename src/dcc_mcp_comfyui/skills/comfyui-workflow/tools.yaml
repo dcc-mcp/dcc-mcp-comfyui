@@ -1,10 +1,10 @@
 tools:
   - name: validate_workflow
-    description: Validate a ComfyUI workflow JSON against the running ComfyUI instance.
+    description: Validate a ComfyUI API-format prompt against the running ComfyUI instance.
     parameters:
       workflow:
         type: object
-        description: Workflow JSON object to validate.
+        description: Prompt JSON exported by ComfyUI using Save (API Format).
         required: true
     script: validate_workflow.py
     affinity: any
@@ -12,11 +12,11 @@ tools:
     timeout_hint_secs: 10
 
   - name: submit_workflow
-    description: Submit a workflow JSON to ComfyUI for execution.
+    description: Submit a ComfyUI API-format prompt for execution.
     parameters:
       workflow:
         type: object
-        description: Workflow JSON to execute.
+        description: Prompt JSON exported by ComfyUI using Save (API Format).
         required: true
       wait:
         type: boolean

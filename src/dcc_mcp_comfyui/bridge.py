@@ -14,6 +14,7 @@ import logging
 import time
 import uuid
 from typing import Any, Optional
+from urllib.parse import urlencode
 
 import httpx
 
@@ -117,14 +118,12 @@ class ComfyUIBridge:
         if not isinstance(workflow, dict):
             return {"valid": False, "errors": ["Workflow must be a JSON object"], "warnings": [], "node_count": 0}
 
-        nodes = workflow.get("nodes") or workflow.get("extra_data", {}).get("workflow", {}).get("nodes")
-
-        if not nodes:
-            errors.append("No 'nodes' key found in workflow")
+        if not workflow:
+            errors.append("Workflow must contain at least one API-format prompt node")
             return {"valid": False, "errors": errors, "warnings": warnings, "node_count": 0}
 
-        if not isinstance(nodes, (list, dict)):
-            errors.append(f"'nodes' must be a list or dict, got {type(nodes).__name__}")
+        if "nodes" in workflow:
+            errors.append("UI workflow format is not executable; export the workflow in API format")
             return {"valid": False, "errors": errors, "warnings": warnings, "node_count": 0}
 
         # Get available node types for cross-reference
@@ -135,39 +134,38 @@ class ComfyUIBridge:
             warnings.append("Could not fetch available node types from ComfyUI; skipped type checking")
 
         # Validate each node
-        node_list = nodes if isinstance(nodes, list) else list(nodes.values())
-        seen_ids: set[int] = set()
+        node_ids = {str(node_id) for node_id in workflow}
 
-        for i, node in enumerate(node_list):
+        for node_id, node in workflow.items():
             if not isinstance(node, dict):
-                errors.append(f"Node at index {i} is not an object")
+                errors.append(f"Node {node_id} is not an object")
                 continue
-
-            node_id = node.get("id")
-            if node_id is None:
-                errors.append(f"Node at index {i} has no 'id'")
-            elif node_id in seen_ids:
-                errors.append(f"Duplicate node id: {node_id}")
-            else:
-                seen_ids.add(node_id)
 
             class_type = node.get("class_type")
             if not class_type:
-                errors.append(f"Node {node_id or i} has no 'class_type'")
+                errors.append(f"Node {node_id} has no 'class_type'")
             elif available_types is not None and class_type not in available_types:
                 warnings.append(f"Node {node_id} class_type '{class_type}' not found in ComfyUI registry")
 
-        # Check for missing inputs references
-        for i, node in enumerate(node_list):
+            inputs = node.get("inputs")
+            if not isinstance(inputs, dict):
+                errors.append(f"Node {node_id} has no valid 'inputs' object")
+
+        # API-format links are [node_id, output_index] pairs.
+        for node_id, node in workflow.items():
             if not isinstance(node, dict):
                 continue
-            node_id = node.get("id", i)
             inputs = node.get("inputs", {})
             if isinstance(inputs, dict):
                 for input_name, input_value in inputs.items():
-                    if isinstance(input_value, list) and len(input_value) >= 2:
-                        ref_node_id = input_value[0]
-                        if ref_node_id not in seen_ids:
+                    if (
+                        isinstance(input_value, list)
+                        and len(input_value) == 2
+                        and isinstance(input_value[0], (str, int))
+                        and isinstance(input_value[1], int)
+                    ):
+                        ref_node_id = str(input_value[0])
+                        if ref_node_id not in node_ids:
                             errors.append(
                                 f"Node {node_id} input '{input_name}' references non-existent node {ref_node_id}"
                             )
@@ -176,7 +174,7 @@ class ComfyUIBridge:
             "valid": len(errors) == 0,
             "errors": errors,
             "warnings": warnings,
-            "node_count": len(node_list),
+            "node_count": len(workflow),
         }
 
     # -- workflow submission --
@@ -319,7 +317,7 @@ class ComfyUIBridge:
             "subfolder": subfolder,
             "type": folder_type,
         }
-        query = "&".join(f"{k}={v}" for k, v in params.items() if v)
+        query = urlencode({key: value for key, value in params.items() if value})
         return f"{self._base_url}/view?{query}"
 
     def list_artifacts(self, prompt_id: str) -> list[dict[str, Any]]:
