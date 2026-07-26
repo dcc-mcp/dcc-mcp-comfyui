@@ -12,19 +12,20 @@ ComfyUI's queue, poll for completion, and retrieve generated images for DCC asse
 
 ### validate_workflow
 
-Validate a ComfyUI workflow JSON structure against the running ComfyUI instance.
+Validate a ComfyUI API-format prompt against the running ComfyUI instance.
 
 **Parameters:**
-- `workflow` (object, required): Workflow JSON to validate.
+- `workflow` (object, required): Prompt JSON exported with **Save (API Format)**.
 
 **Returns:** validation result with errors, warnings, and node count.
 
 ### submit_workflow
 
-Submit a workflow to ComfyUI for execution.
+Submit a ComfyUI API-format prompt for execution. UI workflow JSON from the
+regular Save action is not executable by ComfyUI's `/prompt` endpoint.
 
 **Parameters:**
-- `workflow` (object, required): Workflow JSON to execute.
+- `workflow` (object, required): Prompt JSON exported with **Save (API Format)**.
 - `wait` (boolean, optional): Wait for completion before returning (default: false).
 - `timeout` (number, optional): Max wait time in seconds (default: 120).
 

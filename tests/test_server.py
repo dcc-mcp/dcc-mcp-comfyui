@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from importlib.metadata import version
 from unittest.mock import MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -174,13 +175,13 @@ class TestComfyUIBridge:
         with pytest.raises(ComfyUINotAvailableError):
             bridge.connect()
 
-    def test_validate_workflow_missing_nodes(self):
+    def test_validate_workflow_empty_prompt(self):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge()
         result = bridge.validate_workflow({})
         assert result["valid"] is False
-        assert any("nodes" in e.lower() for e in result["errors"])
+        assert any("node" in e.lower() for e in result["errors"])
 
     def test_validate_workflow_not_dict(self):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
@@ -194,39 +195,34 @@ class TestComfyUIBridge:
 
         bridge = ComfyUIBridge()
         workflow = {
-            "nodes": [
-                {"id": 1, "class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5.safetensors"}},
-                {"id": 2, "class_type": "CLIPTextEncode", "inputs": {"text": "a cat", "clip": [1, 0]}},
-                {"id": 3, "class_type": "VAEDecode", "inputs": {"samples": [2, 0], "vae": [1, 0]}},
-                {"id": 4, "class_type": "SaveImage", "inputs": {"images": [3, 0]}},
-            ]
+            "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5.safetensors"}},
+            "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "a cat", "clip": ["1", 0]}},
+            "3": {"class_type": "VAEDecode", "inputs": {"samples": ["2", 0], "vae": ["1", 0]}},
+            "4": {"class_type": "SaveImage", "inputs": {"images": ["3", 0]}},
         }
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is True
         assert result["node_count"] == 4
 
-    def test_validate_workflow_duplicate_id(self):
+    def test_validate_workflow_rejects_ui_graph_shape(self):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge()
         workflow = {
             "nodes": [
                 {"id": 1, "class_type": "CheckpointLoaderSimple", "inputs": {}},
-                {"id": 1, "class_type": "CLIPTextEncode", "inputs": {}},
             ]
         }
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is False
-        assert any("duplicate" in e.lower() for e in result["errors"])
+        assert any("API format" in error for error in result["errors"])
 
     def test_validate_workflow_bad_reference(self):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge()
         workflow = {
-            "nodes": [
-                {"id": 1, "class_type": "VAEDecode", "inputs": {"samples": [99, 0]}},
-            ]
+            "1": {"class_type": "VAEDecode", "inputs": {"samples": ["99", 0]}},
         }
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is False
@@ -236,10 +232,12 @@ class TestComfyUIBridge:
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge(base_url="http://127.0.0.1:8188")
-        url = bridge.get_artifact_url("ComfyUI_00001_.png", subfolder="output", folder_type="output")
-        assert "ComfyUI_00001_.png" in url
-        assert "subfolder=output" in url
-        assert "type=output" in url
+        url = bridge.get_artifact_url("render & final.png", subfolder="my folder/alpha", folder_type="output")
+        assert parse_qs(urlparse(url).query) == {
+            "filename": ["render & final.png"],
+            "subfolder": ["my folder/alpha"],
+            "type": ["output"],
+        }
 
     @patch("httpx.Client")
     def test_ping_success(self, mock_client_cls):
@@ -287,9 +285,14 @@ class TestComfyUIBridge:
         mock_client_cls.return_value = mock_client
 
         bridge = ComfyUIBridge()
-        result = bridge.submit_workflow({"nodes": []})
+        workflow = {"1": {"class_type": "SaveImage", "inputs": {}}}
+        result = bridge.submit_workflow(workflow)
         assert result["prompt_id"] == "test-prompt-123"
         assert result["number"] == 1
+        mock_client.post.assert_called_once_with(
+            "http://127.0.0.1:8188/prompt",
+            json={"prompt": workflow, "client_id": bridge.client_id},
+        )
 
     @patch("httpx.Client")
     def test_get_prompt_status_completed(self, mock_client_cls):
@@ -353,30 +356,27 @@ class TestComfyUIBridge:
         )
 
         workflow = {
-            "nodes": [
-                {"id": 1, "class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5-pruned.safetensors"}},
-                {"id": 2, "class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512, "batch_size": 1}},
-                {"id": 3, "class_type": "CLIPTextEncode", "inputs": {"text": "a beautiful landscape", "clip": [1, 1]}},
-                {"id": 4, "class_type": "CLIPTextEncode", "inputs": {"text": "bad quality", "clip": [1, 1]}},
-                {
-                    "id": 5,
-                    "class_type": "KSampler",
-                    "inputs": {
-                        "seed": 42,
-                        "steps": 20,
-                        "cfg": 7.0,
-                        "sampler_name": "euler",
-                        "scheduler": "normal",
-                        "denoise": 1.0,
-                        "model": [1, 0],
-                        "positive": [3, 0],
-                        "negative": [4, 0],
-                        "latent_image": [2, 0],
-                    },
+            "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5-pruned.safetensors"}},
+            "2": {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512, "batch_size": 1}},
+            "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "a beautiful landscape", "clip": ["1", 1]}},
+            "4": {"class_type": "CLIPTextEncode", "inputs": {"text": "bad quality", "clip": ["1", 1]}},
+            "5": {
+                "class_type": "KSampler",
+                "inputs": {
+                    "seed": 42,
+                    "steps": 20,
+                    "cfg": 7.0,
+                    "sampler_name": "euler",
+                    "scheduler": "normal",
+                    "denoise": 1.0,
+                    "model": ["1", 0],
+                    "positive": ["3", 0],
+                    "negative": ["4", 0],
+                    "latent_image": ["2", 0],
                 },
-                {"id": 6, "class_type": "VAEDecode", "inputs": {"samples": [5, 0], "vae": [1, 2]}},
-                {"id": 7, "class_type": "SaveImage", "inputs": {"images": [6, 0], "filename_prefix": "result"}},
-            ]
+            },
+            "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
+            "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "result"}},
         }
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is True
