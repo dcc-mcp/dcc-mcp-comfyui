@@ -126,12 +126,12 @@ class ComfyUIBridge:
             errors.append("UI workflow format is not executable; export the workflow in API format")
             return {"valid": False, "errors": errors, "warnings": warnings, "node_count": 0}
 
-        # Get available node types for cross-reference
+        # Get the live node contracts for class and required-input validation.
         try:
-            available_types = self.get_node_names()
+            object_info = self.get_object_info()
         except Exception:
-            available_types = None
-            warnings.append("Could not fetch available node types from ComfyUI; skipped type checking")
+            object_info = None
+            warnings.append("Could not fetch node contracts from ComfyUI; skipped live contract checking")
 
         # Validate each node
         node_ids = {str(node_id) for node_id in workflow}
@@ -144,12 +144,24 @@ class ComfyUIBridge:
             class_type = node.get("class_type")
             if not class_type:
                 errors.append(f"Node {node_id} has no 'class_type'")
-            elif available_types is not None and class_type not in available_types:
-                warnings.append(f"Node {node_id} class_type '{class_type}' not found in ComfyUI registry")
 
             inputs = node.get("inputs")
             if not isinstance(inputs, dict):
                 errors.append(f"Node {node_id} has no valid 'inputs' object")
+                continue
+
+            if class_type and object_info is not None:
+                node_info = object_info.get(class_type)
+                if not isinstance(node_info, dict):
+                    warnings.append(f"Node {node_id} class_type '{class_type}' not found in ComfyUI registry")
+                    continue
+
+                input_contract = node_info.get("input", {})
+                required_inputs = input_contract.get("required", {}) if isinstance(input_contract, dict) else {}
+                if isinstance(required_inputs, dict):
+                    for input_name in required_inputs:
+                        if input_name not in inputs:
+                            errors.append(f"Node {node_id} is missing required input '{input_name}'")
 
         # API-format links are [node_id, output_index] pairs.
         for node_id, node in workflow.items():

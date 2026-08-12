@@ -1,38 +1,19 @@
-"""Query execution status and outputs for a submitted ComfyUI prompt.
-
-Usage: called as a skill script by dcc-mcp-core with kwargs from tools.yaml.
-"""
+"""Typed entry point for ComfyUI prompt status inspection."""
 
 from __future__ import annotations
 
-from typing import Any
+from _runtime import connected_bridge
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
 
-from dcc_mcp_comfyui.api import cf_success, get_bridge, with_comfyui
 
+@skill_entry
+def main(prompt_id: str) -> dict:
+    with connected_bridge() as bridge:
+        status = bridge.get_prompt_status(prompt_id)
+        artifacts = bridge.list_artifacts(prompt_id) if status["done"] and status["status"] == "completed" else []
 
-@with_comfyui
-def run(**kwargs: Any) -> dict:
-    prompt_id = kwargs.get("prompt_id")
-    if not prompt_id:
-        return cf_success(
-            "No prompt_id provided",
-            prompt_id=None,
-            done=False,
-            status="error",
-            outputs={},
-            error_message="prompt_id parameter is required",
-        )
-
-    bridge = get_bridge()
-    status = bridge.get_prompt_status(prompt_id)
-
-    # Collect artifact list if done
-    artifacts = []
-    if status["done"] and status["status"] == "completed":
-        artifacts = bridge.list_artifacts(prompt_id)
-
-    return cf_success(
-        f"Job {prompt_id}: {status['status']}",
+    return skill_success(
+        f"Prompt status: {status['status']}.",
         prompt_id=prompt_id,
         done=status["done"],
         status=status["status"],
@@ -40,3 +21,7 @@ def run(**kwargs: Any) -> dict:
         error_message=status.get("error_message"),
         artifacts=artifacts,
     )
+
+
+if __name__ == "__main__":
+    run_main(main)

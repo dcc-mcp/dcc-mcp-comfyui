@@ -1,4 +1,17 @@
-# comfyui-workflow
+---
+name: comfyui-workflow
+description: Validate, submit, monitor, and retrieve artifacts from ComfyUI API-format workflows through a running local ComfyUI service. Use for deterministic ComfyUI queue execution and DCC asset handoff.
+metadata:
+  dcc-mcp:
+    dcc: comfyui
+    layer: workflow
+    version: "0.1.0" # x-release-please-version
+    tags: [comfyui, workflow, image, automation]
+    search-hint: "ComfyUI API workflow validate submit queue status output artifact image generation"
+    tools: tools.yaml
+---
+
+# ComfyUI Workflow
 
 Manage ComfyUI workflows: validate, submit, monitor status, and retrieve output artifacts.
 

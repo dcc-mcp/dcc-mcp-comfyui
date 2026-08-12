@@ -2,17 +2,32 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from importlib.metadata import version
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+from dcc_mcp_core import validate_skill
 
 
 def test_import():
     import dcc_mcp_comfyui
 
     assert dcc_mcp_comfyui.__version__ == version("dcc-mcp-comfyui")
+
+
+def test_cli_version(capsys):
+    from dcc_mcp_comfyui import __version__
+    from dcc_mcp_comfyui.cli import main
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--version"])
+
+    assert exc_info.value.code == 0
+    assert capsys.readouterr().out.strip() == __version__
 
 
 def test_api_imports():
@@ -144,10 +159,47 @@ def test_start_server_singleton(mock_register, mock_start):
 def test_server_options_to_core_options():
     from dcc_mcp_comfyui.server import ComfyUiServerOptions
 
-    opts = ComfyUiServerOptions(port=8123, comfyui_base_url="http://localhost:8188")
+    opts = ComfyUiServerOptions(
+        port=8123,
+        registry_dir="C:/isolated/comfyui-registry",
+        comfyui_base_url="http://localhost:8188",
+    )
     core_opts = opts.to_core_options()
     assert core_opts.port == 8123
     assert core_opts.dcc_name == "comfyui"
+    assert core_opts.instance_type == "standalone"
+    assert core_opts.gateway.registry_dir == "C:/isolated/comfyui-registry"
+    assert core_opts.gateway.dcc_version == version("dcc-mcp-comfyui")
+    assert core_opts.sidecar.adapter_version == version("dcc-mcp-comfyui")
+
+
+def test_skill_python_defaults_to_active_environment(monkeypatch):
+    from dcc_mcp_comfyui.server import _configure_skill_python
+
+    monkeypatch.delenv("DCC_MCP_PYTHON_EXECUTABLE", raising=False)
+
+    _configure_skill_python()
+
+    assert os.environ["DCC_MCP_PYTHON_EXECUTABLE"] == sys.executable
+
+
+def test_explicit_skill_python_is_preserved(monkeypatch):
+    from dcc_mcp_comfyui.server import _configure_skill_python
+
+    monkeypatch.setenv("DCC_MCP_PYTHON_EXECUTABLE", "C:/explicit/python.exe")
+
+    _configure_skill_python()
+
+    assert os.environ["DCC_MCP_PYTHON_EXECUTABLE"] == "C:/explicit/python.exe"
+
+
+def test_bundled_workflow_skill_validates_without_issues():
+    skill = Path(__file__).parents[1] / "src" / "dcc_mcp_comfyui" / "skills" / "comfyui-workflow"
+
+    report = validate_skill(str(skill))
+
+    assert not report.has_errors
+    assert not report.issues
 
 
 # -- bridge unit tests --
@@ -190,10 +242,11 @@ class TestComfyUIBridge:
         result = bridge.validate_workflow("not a dict")
         assert result["valid"] is False
 
-    def test_validate_workflow_valid_shape(self):
+    def test_validate_workflow_valid_shape(self, monkeypatch):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge()
+        monkeypatch.setattr(bridge, "get_object_info", lambda: {})
         workflow = {
             "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5.safetensors"}},
             "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "a cat", "clip": ["1", 0]}},
@@ -203,6 +256,39 @@ class TestComfyUIBridge:
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is True
         assert result["node_count"] == 4
+
+    def test_validate_workflow_reports_missing_required_inputs(self, monkeypatch):
+        from dcc_mcp_comfyui.bridge import ComfyUIBridge
+
+        bridge = ComfyUIBridge()
+        monkeypatch.setattr(
+            bridge,
+            "get_object_info",
+            lambda: {
+                "EmptyImage": {
+                    "input": {
+                        "required": {
+                            "width": ["INT", {"default": 512}],
+                            "height": ["INT", {"default": 512}],
+                            "batch_size": ["INT", {"default": 1}],
+                            "color": ["INT", {"default": 0}],
+                        }
+                    }
+                }
+            },
+        )
+
+        result = bridge.validate_workflow(
+            {
+                "1": {
+                    "class_type": "EmptyImage",
+                    "inputs": {"width": 64, "height": 64, "batch_size": 1},
+                }
+            }
+        )
+
+        assert result["valid"] is False
+        assert result["errors"] == ["Node 1 is missing required input 'color'"]
 
     def test_validate_workflow_rejects_ui_graph_shape(self):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
