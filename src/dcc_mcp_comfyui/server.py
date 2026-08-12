@@ -1,15 +1,15 @@
 """ComfyUiMcpServer — MCP server for ComfyUI workflow automation.
 
-ComfyUI exposes a REST API (default http://127.0.0.1:8188) and a WebSocket
-for real-time progress. This adapter runs as a sidecar process that bridges
-MCP tools to ComfyUI's HTTP endpoints.
-
-MVP vertical slice: workflow validate → submit → status/artifact query → DCC handoff.
+ComfyUI exposes a local REST API (default http://127.0.0.1:8188). This adapter
+runs as a standalone sidecar that bridges typed MCP tools to bounded workflow
+validation, queue execution, status, and artifact endpoints.
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
@@ -36,6 +36,11 @@ _BUILTIN_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 
 # Minimal mode: eager-load only the workflow skill
 _MINIMAL_SKILLS = ("comfyui-workflow",)
+
+
+def _configure_skill_python() -> None:
+    """Keep Skill subprocesses inside the adapter's installed environment."""
+    os.environ.setdefault("DCC_MCP_PYTHON_EXECUTABLE", sys.executable)
 
 
 def _build_minimal_mode_config() -> MinimalModeConfig:
@@ -70,6 +75,10 @@ class ComfyUiServerOptions:
             port=self.port,
             server_name=self.server_name,
             server_version=self.server_version,
+            adapter_version=self.server_version,
+            dcc_version=self.server_version,
+            instance_type="standalone",
+            standalone_main_thread=False,
             gateway_port=self.gateway_port,
             registry_dir=self.registry_dir,
             enable_gateway_failover=_env.resolve_enable_gateway_failover(self.enable_gateway_failover),
@@ -99,6 +108,8 @@ class ComfyUiMcpServer(DccServerBase):
         options: Optional[ComfyUiServerOptions] = None,
     ) -> None:
         from dcc_mcp_comfyui import _env  # noqa: PLC0415
+
+        _configure_skill_python()
 
         if options is None:
             options = ComfyUiServerOptions(

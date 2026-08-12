@@ -8,9 +8,12 @@ import sys
 import time
 from typing import Optional
 
+from dcc_mcp_comfyui.__version__ import __version__
+
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="ComfyUI MCP Server")
+    parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument(
         "--port",
         type=int,

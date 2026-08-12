@@ -1,31 +1,20 @@
-"""Validate a ComfyUI workflow JSON against the running instance.
-
-Usage: called as a skill script by dcc-mcp-core with kwargs from tools.yaml.
-"""
+"""Typed entry point for ComfyUI workflow validation."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from dcc_mcp_comfyui.api import cf_success, get_bridge, with_comfyui
+from _runtime import connected_bridge
+from dcc_mcp_core.skill import run_main, skill_entry, skill_success
 
 
-@with_comfyui
-def run(**kwargs: Any) -> dict:
-    workflow = kwargs.get("workflow")
-    if not workflow:
-        return cf_success(
-            "No workflow provided",
-            valid=False,
-            errors=["workflow parameter is required"],
-            warnings=[],
-            node_count=0,
-        )
+@skill_entry
+def main(workflow: dict[str, Any]) -> dict:
+    with connected_bridge() as bridge:
+        validation = bridge.validate_workflow(workflow)
+    state = "passed" if validation["valid"] else "failed"
+    return skill_success(f"Workflow validation {state}.", validation=validation)
 
-    bridge = get_bridge()
-    result = bridge.validate_workflow(workflow)
 
-    return cf_success(
-        f"Workflow validation {'passed' if result['valid'] else 'failed'}",
-        **result,
-    )
+if __name__ == "__main__":
+    run_main(main)
