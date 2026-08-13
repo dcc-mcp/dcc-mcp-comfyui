@@ -37,11 +37,7 @@ def _write_latest_pointer(input_root: Path, *, channel_id: str, asset_id: str, p
 def _resolve_source(source_root: Path, source_name: str) -> Path:
     root = source_root.resolve()
     requested = Path(str(source_name).strip())
-    if (
-        not str(requested)
-        or bool(requested.anchor)
-        or any(part in {"", ".", ".."} for part in requested.parts)
-    ):
+    if not str(requested) or bool(requested.anchor) or any(part in {"", ".", ".."} for part in requested.parts):
         raise AssetSyncValidationError("source_name must be a safe relative path")
     source = (root / requested).resolve(strict=True)
     try:
