@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.1](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.0...v0.1.1) (2026-08-13)
+
+
+### Features
+
+* add production ComfyUI capabilities ([#4](https://github.com/dcc-mcp/dcc-mcp-comfyui/issues/4)) ([2134de5](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/2134de55b5f65c708807ea0159a8a72796499637))
+
+
+### Bug Fixes
+
+* synchronize bundled skill versions ([#6](https://github.com/dcc-mcp/dcc-mcp-comfyui/issues/6)) ([ff022ea](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/ff022ea85f5022d4564876180c2592161e91a557))
+
 ## 0.1.0 (2026-08-12)
 
 

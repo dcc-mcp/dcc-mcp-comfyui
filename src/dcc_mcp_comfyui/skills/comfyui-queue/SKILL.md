@@ -5,7 +5,7 @@ metadata:
   dcc-mcp:
     dcc: comfyui
     layer: domain
-    version: "0.1.0" # x-release-please-version
+    version: "0.1.1" # x-release-please-version
     tags: [comfyui, queue]
     search-hint: "ComfyUI queue running pending cancel interrupt exact prompt history delete free memory unload models"
     tools: tools.yaml
