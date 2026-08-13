@@ -204,17 +204,21 @@ def test_all_bundled_skills_validate_without_issues():
     }
 
     actual_tools = {}
+    skill_versions = {}
     for skill_name in expected_tools:
         skill = skills_root / skill_name
         report = validate_skill(str(skill))
 
         assert not report.has_errors, (skill_name, report.issues)
         assert not report.issues, (skill_name, report.issues)
+        skill_metadata = yaml.safe_load((skill / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
+        skill_versions[skill_name] = skill_metadata["metadata"]["dcc-mcp"]["version"]
         manifest = yaml.safe_load((skill / "tools.yaml").read_text(encoding="utf-8"))
         actual_tools[skill_name] = len(manifest["tools"])
 
     assert actual_tools == expected_tools
     assert sum(actual_tools.values()) == 17
+    assert set(skill_versions.values()) == {version("dcc-mcp-comfyui")}, skill_versions
 
 
 # -- bridge unit tests --
