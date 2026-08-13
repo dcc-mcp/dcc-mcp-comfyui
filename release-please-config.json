@@ -16,7 +16,10 @@
           "path": "pyproject.toml",
           "jsonpath": "$.project.version"
         },
-        "src/dcc_mcp_comfyui/skills/comfyui-workflow/SKILL.md"
+        "src/dcc_mcp_comfyui/skills/comfyui-workflow/SKILL.md",
+        "src/dcc_mcp_comfyui/skills/comfyui-catalog/SKILL.md",
+        "src/dcc_mcp_comfyui/skills/comfyui-queue/SKILL.md",
+        "src/dcc_mcp_comfyui/skills/comfyui-assets/SKILL.md"
       ]
     }
   },
