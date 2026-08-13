@@ -45,6 +45,13 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24"
+      - name: Prebuild the Core Admin UI on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          npm --prefix .ci/dcc-mcp-core/admin-ui ci --ignore-scripts --include=optional
+          npm --prefix .ci/dcc-mcp-core/admin-ui run build
+          "DCC_MCP_ADMIN_UI_PREBUILT=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - run: python -m pip install --upgrade pip
       - name: Install the pending Core contract
         run: python -m pip install .ci/dcc-mcp-core
