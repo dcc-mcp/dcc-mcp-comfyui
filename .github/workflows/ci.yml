@@ -14,11 +14,15 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  DCC_MCP_CORE_REF: 025d3f29fbe3bc7ca77552e3f73733b44391ee50
+  COMFYUI_REF: c2bcbecd82ec5ae66594340b395c24ef0217b238
+
 jobs:
   test:
     name: Test Python ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -30,12 +34,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: dcc-mcp/dcc-mcp-core
+          ref: ${{ env.DCC_MCP_CORE_REF }}
+          path: .ci/dcc-mcp-core
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install "dcc-mcp-core==0.19.91"
-      - run: python -m pip install -e ".[dev]"
+      - name: Install the pending Core contract
+        run: python -m pip install .ci/dcc-mcp-core
+      - run: python -m pip install -e ".[dev]" --no-deps
+      - run: python -m pip install "httpx>=0.25.0" "pytest>=7.0" "pytest-mock>=3.0" "pytest-asyncio>=0.23"
       - run: python -m pytest
 
   lint-and-build:
@@ -47,8 +58,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install "dcc-mcp-core==0.19.91"
-      - run: python -m pip install -e ".[dev]" twine
+      - run: python -m pip install "dcc-mcp-core==0.20.5"
+      - run: python -m pip install -e ".[dev]" --no-deps
+      - run: python -m pip install "httpx>=0.25.0" "ruff>=0.8.0" "build>=1.0" "pyyaml>=6.0" twine
       - run: python -m ruff check .
       - run: python -m ruff format --check .
       - run: python -m build
@@ -57,5 +69,71 @@ jobs:
         shell: bash
         run: |
           python -m pip install --force-reinstall --no-deps dist/*.whl
-          python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skill_runtime.py').is_file(); expected = {'comfyui-workflow': 4, 'comfyui-catalog': 7, 'comfyui-queue': 4, 'comfyui-assets': 2}; import yaml; actual = {name: len(yaml.safe_load(root.joinpath('skills', name, 'tools.yaml').read_text(encoding='utf-8'))['tools']) for name in expected}; assert actual == expected, actual"
+          python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skill_runtime.py').is_file(); assert root.joinpath('comfyui_custom_nodes', 'dcc_mcp_sync', 'web', 'dcc_mcp_sync.js').is_file(); expected = {'comfyui-workflow': 5, 'comfyui-catalog': 7, 'comfyui-queue': 4, 'comfyui-assets': 2}; import yaml; actual = {name: len(yaml.safe_load(root.joinpath('skills', name, 'tools.yaml').read_text(encoding='utf-8'))['tools']) for name in expected}; assert actual == expected, actual"
           python -c "import importlib.metadata as m, subprocess; expected = m.version('dcc-mcp-comfyui'); actual = subprocess.check_output(['dcc-mcp-comfyui', '--version'], text=True).strip(); assert actual == expected, (actual, expected)"
+
+  comfyui-integration:
+    name: ComfyUI v0.32.0 asset sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: dcc-mcp/dcc-mcp-core
+          ref: ${{ env.DCC_MCP_CORE_REF }}
+          path: .ci/dcc-mcp-core
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: Comfy-Org/ComfyUI
+          ref: ${{ env.COMFYUI_REF }}
+          path: .ci/ComfyUI
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: .ci/ComfyUI/requirements.txt
+      - name: Install ComfyUI and the pending adapter contracts
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .ci/ComfyUI/requirements.txt
+          python -m pip install .ci/dcc-mcp-core
+          python -m pip install -e . --no-deps
+          cp -R src/dcc_mcp_comfyui/comfyui_custom_nodes/dcc_mcp_sync .ci/ComfyUI/custom_nodes/dcc_mcp_sync
+      - name: Start ComfyUI and verify 3D asset sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_root="$RUNNER_TEMP/dcc-mcp-source"
+          input_root="$RUNNER_TEMP/comfyui-input"
+          mkdir -p "$source_root" "$input_root"
+          python .ci/ComfyUI/main.py \
+            --cpu \
+            --listen 127.0.0.1 \
+            --port 8188 \
+            --input-directory "$input_root" \
+            --disable-auto-launch \
+            > "$RUNNER_TEMP/comfyui.log" 2>&1 &
+          comfyui_pid=$!
+          trap 'kill "$comfyui_pid" 2>/dev/null || true' EXIT
+
+          ready=0
+          for _ in $(seq 1 120); do
+            if curl --fail --silent --show-error http://127.0.0.1:8188/system_stats > /dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$comfyui_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat "$RUNNER_TEMP/comfyui.log"
+            exit 1
+          fi
+
+          python scripts/ci_comfyui_smoke.py \
+            --base-url http://127.0.0.1:8188 \
+            --source-root "$source_root" \
+            --input-root "$input_root"
