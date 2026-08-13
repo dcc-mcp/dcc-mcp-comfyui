@@ -10,9 +10,9 @@
 
 Production ComfyUI adapter for the DCC Model Context Protocol (MCP) ecosystem. It gives agents a typed, bounded path from API-format workflow validation to queue execution and artifact delivery through ComfyUI's local REST API.
 
-![Validate, execute, and deliver a ComfyUI workflow](docs/assets/comfyui-workflow-showcase.webp)
+![Publish a Blender mesh revision and refresh it interactively in ComfyUI Load3D](docs/assets/comfyui-3d-sync-showcase.gif)
 
-_Illustrative workflow generated with OpenAI ImageGen from the retained source in `docs/assets/sources`; it depicts only the implemented validation, queue, polling, and artifact-delivery path._
+_Real local capture: Blender sphere -> half-mesh revision -> content-addressed publish -> click-to-latest ComfyUI `Load3D` canvas preview. The reproducible single-node workflow is in [`docs/showcase/comfyui-load3d-preview.json`](docs/showcase/comfyui-load3d-preview.json)._
 
 ## Capabilities
 
@@ -21,6 +21,8 @@ _Illustrative workflow generated with OpenAI ImageGen from the retained source i
 - Queue operations inspect IDs without workflow bodies, target one exact prompt for cancellation or history deletion, and verify the resulting state; running cancellation fails closed instead of falling back to ComfyUI's legacy global interrupt.
 - Asset handoff uploads bounded images with SHA-256 provenance and atomically downloads only artifacts proven to belong to the requested prompt.
 - Artifact discovery is shape-based rather than tied to English labels or an image-only key, so file-shaped image, animation, video, audio, 3D, and custom-node outputs share one bounded contract.
+- `stage_3d_asset` publishes a content-addressed revision from an operator-owned export root and stages it under ComfyUI `input/3d` for `Load3D`.
+- The bundled ComfyUI extension adds a canvas-level **Update to latest DCC revision** action backed by an atomic latest-revision pointer.
 - Standalone discovery, packaged Skill subprocesses, and six-part DCC-MCP readiness are supported out of the box.
 
 The production path was live-validated on ComfyUI 0.32.0 with a three-node `EmptyImage -> ImageInvert -> SaveImage` workflow, including typed validation, execution, status polling, and artifact retrieval.
@@ -38,23 +40,35 @@ python main.py --listen 127.0.0.1
 dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188
 ```
 
+To enable bounded 3D synchronization, configure both trusted roots before
+starting the adapter:
+
+```bash
+set DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT=G:\dcc-sync\exports
+set DCC_MCP_COMFYUI_INPUT_DIR=G:\apps\ComfyUI\input
+dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188
+```
+
 ## Environment Variables
 
 | Variable | Default | Description |
 |---|---|---|
 | `DCC_MCP_COMFYUI_BASE_URL` | `http://127.0.0.1:8188` | ComfyUI server URL |
 | `DCC_MCP_COMFYUI_TIMEOUT` | `120` | Request timeout (seconds) |
+| `DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT` | unset | Trusted producer-export root required by `stage_3d_asset` |
+| `DCC_MCP_COMFYUI_INPUT_DIR` | unset | Trusted ComfyUI input root required by `stage_3d_asset` |
+| `DCC_MCP_COMFYUI_SYNC_MAX_ASSET_BYTES` | `268435456` | Maximum accepted 3D asset size |
 | `DCC_MCP_COMFYUI_PORT` | OS-assigned | MCP instance port |
 | `DCC_MCP_GATEWAY_PORT` | `9765` | Gateway port |
 | `DCC_MCP_COMFYUI_ENABLE_GATEWAY_FAILOVER` | `true` | Gateway failover |
 
 ## Skills
 
-The wheel includes four validated Skills and 17 typed tools:
+The wheel includes four validated Skills and 18 typed tools:
 
 | Skill | Tools | Boundary |
 |---|---:|---|
-| `comfyui-workflow` | 4 | Validate, submit, monitor, and resolve exact prompt-owned artifacts |
+| `comfyui-workflow` | 5 | Validate, submit, monitor, resolve prompt-owned artifacts, and stage versioned 3D assets |
 | `comfyui-catalog` | 7 | Features, model folders, models, embeddings, node summaries/contracts, and redacted runtime status |
 | `comfyui-queue` | 4 | Redacted queue inspection, exact cancellation/history deletion, and memory reclamation |
 | `comfyui-assets` | 2 | Bounded image upload and atomic prompt-owned artifact download |
@@ -86,7 +100,8 @@ uv run ruff check src/ tests/
 
 ```
 MCP Client → Gateway (:9765) → ComfyUiMcpServer (OS port)
-    └─ Skill scripts → ComfyUIBridge → ComfyUI REST API (:8188)
+    ├─ Workflow scripts → ComfyUIBridge → ComfyUI REST API (:8188)
+    └─ Asset sync → content-addressed revision → configured ComfyUI input/3d
 ```
 
 ## License
