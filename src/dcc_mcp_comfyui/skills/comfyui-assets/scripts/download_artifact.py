@@ -1,6 +1,4 @@
-"""Typed entry point for ComfyUI artifact URL construction."""
-
-from __future__ import annotations
+"""Typed entry point for prompt-owned atomic artifact download."""
 
 from dcc_mcp_core.skill import run_main, skill_entry, skill_success
 
@@ -11,26 +9,23 @@ from dcc_mcp_comfyui.skill_runtime import connected_bridge
 def main(
     prompt_id: str,
     filename: str,
+    target: str,
     subfolder: str = "",
     folder_type: str = "output",
+    overwrite: bool = False,
+    max_file_bytes: int = 536870912,
 ) -> dict:
     with connected_bridge() as bridge:
-        artifact = bridge.resolve_artifact(
+        result = bridge.download_artifact(
             prompt_id,
             filename,
+            target,
             subfolder=subfolder,
             folder_type=folder_type,
+            overwrite=overwrite,
+            max_file_bytes=max_file_bytes,
         )
-
-    return skill_success(
-        f"Artifact URL prepared for {filename}.",
-        prompt_id=prompt_id,
-        filename=filename,
-        subfolder=subfolder,
-        folder_type=folder_type,
-        node_id=artifact.get("node_id"),
-        url=artifact["url"],
-    )
+    return skill_success("Prompt-owned artifact downloaded atomically.", **result)
 
 
 if __name__ == "__main__":

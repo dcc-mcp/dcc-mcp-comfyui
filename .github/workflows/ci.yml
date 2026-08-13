@@ -57,5 +57,5 @@ jobs:
         shell: bash
         run: |
           python -m pip install --force-reinstall --no-deps dist/*.whl
-          python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skills', 'comfyui-workflow', 'SKILL.md').is_file(); assert root.joinpath('skills', 'comfyui-workflow', 'tools.yaml').is_file(); assert root.joinpath('skills', 'comfyui-workflow', 'scripts', '_runtime.py').is_file()"
+          python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skill_runtime.py').is_file(); expected = {'comfyui-workflow': 4, 'comfyui-catalog': 7, 'comfyui-queue': 4, 'comfyui-assets': 2}; import yaml; actual = {name: len(yaml.safe_load(root.joinpath('skills', name, 'tools.yaml').read_text(encoding='utf-8'))['tools']) for name in expected}; assert actual == expected, actual"
           python -c "import importlib.metadata as m, subprocess; expected = m.version('dcc-mcp-comfyui'); actual = subprocess.check_output(['dcc-mcp-comfyui', '--version'], text=True).strip(); assert actual == expected, (actual, expected)"

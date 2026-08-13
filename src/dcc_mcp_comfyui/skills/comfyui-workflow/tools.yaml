@@ -105,6 +105,8 @@ tools:
         prompt_id:
           type: string
           minLength: 1
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
           description: Prompt ID returned by submit_workflow.
     output_schema:
       type: object
@@ -126,7 +128,7 @@ tools:
     tags: [comfyui, workflow, queue, status]
 
   - name: get_artifact
-    description: Build the local ComfyUI download URL for a known output artifact.
+    description: Prove prompt ownership and return the URL for one exact ComfyUI artifact.
     source_file: scripts/get_artifact.py
     execution: sync
     job_strategy: monolithic
@@ -140,6 +142,8 @@ tools:
         prompt_id:
           type: string
           minLength: 1
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
           description: Prompt ID returned by submit_workflow.
         filename:
           type: string
