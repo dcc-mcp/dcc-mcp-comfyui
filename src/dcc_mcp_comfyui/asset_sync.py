@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from dcc_mcp_core.asset_sync import AssetSyncValidationError, FileAssetSyncStore
@@ -36,8 +36,14 @@ def _write_latest_pointer(input_root: Path, *, channel_id: str, asset_id: str, p
 
 def _resolve_source(source_root: Path, source_name: str) -> Path:
     root = source_root.resolve()
-    requested = Path(str(source_name).strip())
-    if not str(requested) or bool(requested.anchor) or any(part in {"", ".", ".."} for part in requested.parts):
+    requested_name = str(source_name).strip()
+    requested = Path(requested_name)
+    if (
+        not requested_name
+        or bool(requested.anchor)
+        or PureWindowsPath(requested_name).is_absolute()
+        or any(part in {"", ".", ".."} for part in requested.parts)
+    ):
         raise AssetSyncValidationError("source_name must be a safe relative path")
     source = (root / requested).resolve(strict=True)
     try:
