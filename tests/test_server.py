@@ -107,6 +107,28 @@ def test_resolve_comfyui_timeout_from_env(monkeypatch):
     assert resolve_comfyui_timeout() == 60.0
 
 
+def test_sync_roots_are_required(monkeypatch):
+    from dcc_mcp_comfyui._env import resolve_comfyui_input_dir, resolve_sync_source_root
+
+    monkeypatch.delenv("DCC_MCP_COMFYUI_INPUT_DIR", raising=False)
+    monkeypatch.delenv("DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT", raising=False)
+
+    with pytest.raises(ValueError):
+        resolve_comfyui_input_dir()
+    with pytest.raises(ValueError):
+        resolve_sync_source_root()
+
+
+def test_sync_roots_resolve_from_environment(monkeypatch):
+    from dcc_mcp_comfyui._env import resolve_comfyui_input_dir, resolve_sync_source_root
+
+    monkeypatch.setenv("DCC_MCP_COMFYUI_INPUT_DIR", "C:/ComfyUI/input")
+    monkeypatch.setenv("DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT", "C:/exports")
+
+    assert resolve_comfyui_input_dir() == "C:/ComfyUI/input"
+    assert resolve_sync_source_root() == "C:/exports"
+
+
 def test_resolve_minimal_mode_enabled_default():
     from dcc_mcp_comfyui._env import resolve_minimal_mode_enabled
 
@@ -200,7 +222,7 @@ def test_all_bundled_skills_validate_without_issues():
         "comfyui-assets": 2,
         "comfyui-catalog": 7,
         "comfyui-queue": 4,
-        "comfyui-workflow": 4,
+        "comfyui-workflow": 5,
     }
 
     actual_tools = {}
@@ -217,8 +239,98 @@ def test_all_bundled_skills_validate_without_issues():
         actual_tools[skill_name] = len(manifest["tools"])
 
     assert actual_tools == expected_tools
-    assert sum(actual_tools.values()) == 17
+    assert sum(actual_tools.values()) == 18
     assert set(skill_versions.values()) == {version("dcc-mcp-comfyui")}, skill_versions
+
+
+def test_stage_3d_asset_uses_operator_owned_roots(tmp_path):
+    from dcc_mcp_comfyui.asset_sync import stage_3d_asset
+
+    source_root = tmp_path / "exports"
+    input_root = tmp_path / "ComfyUI" / "input"
+    source_root.mkdir()
+    (source_root / "houdini-test.obj").write_bytes(b"houdini-obj")
+
+    result = stage_3d_asset(
+        source_name="houdini-test.obj",
+        source_root=source_root,
+        input_root=input_root,
+        channel_id="houdini-comfyui",
+        asset_id="houdini-test",
+        format="obj",
+        mime="model/obj",
+        expected_head_revision=0,
+        source_instance_id="houdini-instance",
+    )
+
+    assert result["revision"]["revision"] == 1
+    assert result["input_name"].startswith("3d/houdini-test_r1_")
+    assert (input_root / Path(result["input_name"])).read_bytes() == b"houdini-obj"
+    assert "source_path" not in result
+    pointer = input_root / "3d" / ".dcc-mcp-latest" / "houdini-comfyui" / "houdini-test.json"
+    assert pointer.is_file()
+    assert result["latest"]["input_name"] == result["input_name"]
+    assert result["latest"]["revision"] == 1
+
+
+def test_stage_3d_asset_updates_latest_pointer(tmp_path):
+    import json
+
+    from dcc_mcp_comfyui.asset_sync import stage_3d_asset
+
+    source_root = tmp_path / "exports"
+    input_root = tmp_path / "ComfyUI" / "input"
+    source_root.mkdir()
+    input_root.mkdir(parents=True)
+    source = source_root / "sphere.obj"
+    source.write_text("o sphere-r1\n", encoding="utf-8")
+
+    first = stage_3d_asset(
+        source_name="sphere.obj",
+        source_root=source_root,
+        input_root=input_root,
+        channel_id="blender-comfyui-showcase",
+        asset_id="blender-sphere",
+        format="obj",
+        mime="model/obj",
+        expected_head_revision=0,
+    )
+    source.write_text("o hemisphere-r2\n", encoding="utf-8")
+    second = stage_3d_asset(
+        source_name="sphere.obj",
+        source_root=source_root,
+        input_root=input_root,
+        channel_id="blender-comfyui-showcase",
+        asset_id="blender-sphere",
+        format="obj",
+        mime="model/obj",
+        expected_head_revision=1,
+    )
+
+    pointer = input_root / "3d" / ".dcc-mcp-latest" / "blender-comfyui-showcase" / "blender-sphere.json"
+    latest = json.loads(pointer.read_text(encoding="utf-8"))
+    assert first["revision"]["revision"] == 1
+    assert second["revision"]["revision"] == 2
+    assert latest == second["latest"]
+    assert latest["input_name"] == second["input_name"]
+    assert first["input_name"] != second["input_name"]
+
+
+@pytest.mark.parametrize("source_name", ["../secret.obj", "C:/secret.obj", "/secret.obj"])
+def test_stage_3d_asset_rejects_source_escape(tmp_path, source_name):
+    from dcc_mcp_comfyui.asset_sync import AssetSyncValidationError, stage_3d_asset
+
+    with pytest.raises(AssetSyncValidationError):
+        stage_3d_asset(
+            source_name=source_name,
+            source_root=tmp_path / "exports",
+            input_root=tmp_path / "input",
+            channel_id="houdini-comfyui",
+            asset_id="houdini-test",
+            format="obj",
+            mime="model/obj",
+            expected_head_revision=0,
+        )
 
 
 # -- bridge unit tests --

@@ -1,0 +1,50 @@
+{
+  "last_node_id": 1,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Load3D",
+      "pos": [160, 80],
+      "size": [760, 820],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "image", "type": "IMAGE", "links": null},
+        {"name": "mask", "type": "MASK", "links": null},
+        {"name": "mesh_path", "type": "STRING", "links": null},
+        {"name": "normal", "type": "IMAGE", "links": null},
+        {"name": "camera_info", "type": "LOAD3D_CAMERA", "links": null},
+        {"name": "recording_video", "type": "VIDEO", "links": null},
+        {"name": "model_3d", "type": "FILE_3D", "links": null},
+        {"name": "model_3d_info", "type": "LOAD3D_MODEL_INFO", "links": null}
+      ],
+      "properties": {
+        "Node name for S&R": "Load3D",
+        "Resource Folder": "",
+        "Last Time Model File": "3d/blender-sphere_r1_ec8b4360223f.obj",
+        "DCC MCP Channel ID": "blender-comfyui-showcase",
+        "DCC MCP Asset ID": "blender-sphere",
+        "cnr_id": "comfy-core"
+      },
+      "widgets_values": [
+        "3d/blender-sphere_r1_ec8b4360223f.obj",
+        "",
+        1024,
+        1024
+      ]
+    }
+  ],
+  "links": [],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.82,
+      "offset": [220, 70]
+    }
+  },
+  "version": 0.4
+}

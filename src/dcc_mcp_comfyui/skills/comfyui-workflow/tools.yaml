@@ -90,6 +90,69 @@ tools:
       open_world_hint: true
     tags: [comfyui, workflow, queue, execution]
 
+  - name: stage_3d_asset
+    description: Publish a versioned 3D export from the configured sync source root into ComfyUI input/3d for Load3D.
+    source_file: scripts/stage_3d_asset.py
+    execution: async
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 120
+    input_schema:
+      type: object
+      required: [source_name, channel_id, asset_id, format]
+      properties:
+        source_name:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Relative export path beneath DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT.
+        channel_id:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,128}$"
+        asset_id:
+          type: string
+          pattern: "^[A-Za-z0-9._-]{1,128}$"
+        format:
+          type: string
+          enum: [obj, glb, gltf, fbx, stl]
+        expected_head_revision:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Optimistic concurrency precondition; zero requires an unpublished asset.
+        source_instance_id:
+          type: [string, "null"]
+          maxLength: 128
+          default: null
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        context:
+          type: object
+          required: [revision, input_name, url]
+          properties:
+            revision:
+              type: object
+              required: [channel_id, asset_id, revision, digest, file_ref]
+              additionalProperties: true
+            input_name:
+              type: string
+            url:
+              type: string
+          additionalProperties: false
+    annotations:
+      read_only_hint: false
+      destructive_hint: false
+      idempotent_hint: true
+      open_world_hint: false
+    tags: [comfyui, asset, sync, 3d, load3d]
+
   - name: query_job_status
     description: Query the execution state, outputs, and artifacts of a ComfyUI prompt.
     source_file: scripts/query_job_status.py

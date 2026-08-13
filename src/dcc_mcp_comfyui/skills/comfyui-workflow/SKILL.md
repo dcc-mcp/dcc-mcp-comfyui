@@ -6,14 +6,16 @@ metadata:
     dcc: comfyui
     layer: workflow
     version: "0.1.1" # x-release-please-version
-    tags: [comfyui, workflow, image, automation]
-    search-hint: "ComfyUI API workflow validate submit queue status output artifact image generation"
+    tags: [comfyui, workflow, image, automation, asset-sync, 3d]
+    search-hint: "ComfyUI API workflow validate submit queue status output artifact image generation Load3D 3D asset sync"
     tools: tools.yaml
 ---
 
 # ComfyUI Workflow
 
-Manage ComfyUI workflows: validate, submit, monitor status, and resolve prompt-owned output artifacts.
+Manage ComfyUI workflows: validate, submit, monitor status, resolve prompt-owned
+output artifacts, and stage versioned producer exports into ComfyUI's `Load3D`
+input area.
 
 ## Purpose
 
@@ -67,6 +69,22 @@ Prove the exact prompt owns one matching artifact and return its download URL.
 
 **Returns:** download URL and artifact metadata.
 
+### stage_3d_asset
+
+Publish one OBJ/GLB/GLTF/FBX/STL file from the operator-configured sync source
+root, then materialize the immutable revision beneath ComfyUI `input/3d`.
+
+**Parameters:**
+- `source_name` (string, required): Relative path beneath the configured source root.
+- `channel_id` (string, required): Stable synchronization channel.
+- `asset_id` (string, required): Stable logical asset identifier.
+- `format` (string, required): `obj`, `glb`, `gltf`, `fbx`, or `stl`.
+- `expected_head_revision` (integer, optional): Optimistic concurrency precondition.
+- `source_instance_id` (string, optional): Producer DCC instance identifier.
+
+**Returns:** path-free revision manifest, ComfyUI-relative input name, and local
+ComfyUI `/view` URL. The tool never accepts an absolute source or destination root.
+
 ## Usage
 
 ```json
@@ -81,3 +99,6 @@ Prove the exact prompt owns one matching artifact and return its download URL.
 
 - `DCC_MCP_COMFYUI_BASE_URL`: ComfyUI server URL (default: http://127.0.0.1:8188)
 - `DCC_MCP_COMFYUI_TIMEOUT`: Request timeout in seconds (default: 120)
+- `DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT`: Trusted producer export root (required for 3D sync)
+- `DCC_MCP_COMFYUI_INPUT_DIR`: Trusted ComfyUI input root (required for 3D sync)
+- `DCC_MCP_COMFYUI_SYNC_MAX_ASSET_BYTES`: Maximum inbound bytes (default: 268435456)
