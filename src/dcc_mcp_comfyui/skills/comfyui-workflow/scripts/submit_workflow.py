@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from _runtime import connected_bridge
 from dcc_mcp_core.skill import run_main, skill_entry, skill_error, skill_success
+
+from dcc_mcp_comfyui.skill_runtime import connected_bridge
 
 
 @skill_entry

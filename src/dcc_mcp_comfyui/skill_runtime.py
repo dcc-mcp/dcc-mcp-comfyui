@@ -1,4 +1,4 @@
-"""Process-local ComfyUI connection helper for Skill subprocesses."""
+"""Shared process-local ComfyUI connection helper for packaged Skills."""
 
 from __future__ import annotations
 

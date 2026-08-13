@@ -34,8 +34,14 @@ DEFAULT_PORT = 0
 _DCC_NAME = "comfyui"
 _BUILTIN_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 
-# Minimal mode: eager-load only the workflow skill
-_MINIMAL_SKILLS = ("comfyui-workflow",)
+# Minimal mode keeps the adapter's complete typed production surface while
+# excluding unrelated global skill paths.
+_MINIMAL_SKILLS = (
+    "comfyui-workflow",
+    "comfyui-catalog",
+    "comfyui-queue",
+    "comfyui-assets",
+)
 
 
 def _configure_skill_python() -> None:

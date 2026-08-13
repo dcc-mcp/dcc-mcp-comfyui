@@ -49,7 +49,17 @@ comfyui = "dcc_mcp_comfyui:ComfyUiMcpServer"
 packages = ["src/dcc_mcp_comfyui"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["docs/**/*.png", "docs/**/*.svg", "docs/**/*.webp"]
+exclude = [
+    "docs/**/*.png",
+    "docs/**/*.svg",
+    "docs/**/*.webp",
+    "/.venv",
+    "/build",
+    "/dist",
+    "/venv",
+    "/work",
+    "/work-*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

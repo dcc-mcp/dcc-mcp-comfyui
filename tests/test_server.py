@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
+import yaml
 from dcc_mcp_core import validate_skill
 
 
@@ -193,13 +194,27 @@ def test_explicit_skill_python_is_preserved(monkeypatch):
     assert os.environ["DCC_MCP_PYTHON_EXECUTABLE"] == "C:/explicit/python.exe"
 
 
-def test_bundled_workflow_skill_validates_without_issues():
-    skill = Path(__file__).parents[1] / "src" / "dcc_mcp_comfyui" / "skills" / "comfyui-workflow"
+def test_all_bundled_skills_validate_without_issues():
+    skills_root = Path(__file__).parents[1] / "src" / "dcc_mcp_comfyui" / "skills"
+    expected_tools = {
+        "comfyui-assets": 2,
+        "comfyui-catalog": 7,
+        "comfyui-queue": 4,
+        "comfyui-workflow": 4,
+    }
 
-    report = validate_skill(str(skill))
+    actual_tools = {}
+    for skill_name in expected_tools:
+        skill = skills_root / skill_name
+        report = validate_skill(str(skill))
 
-    assert not report.has_errors
-    assert not report.issues
+        assert not report.has_errors, (skill_name, report.issues)
+        assert not report.issues, (skill_name, report.issues)
+        manifest = yaml.safe_load((skill / "tools.yaml").read_text(encoding="utf-8"))
+        actual_tools[skill_name] = len(manifest["tools"])
+
+    assert actual_tools == expected_tools
+    assert sum(actual_tools.values()) == 17
 
 
 # -- bridge unit tests --
@@ -246,13 +261,17 @@ class TestComfyUIBridge:
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge()
-        monkeypatch.setattr(bridge, "get_object_info", lambda: {})
         workflow = {
             "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5.safetensors"}},
             "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "a cat", "clip": ["1", 0]}},
             "3": {"class_type": "VAEDecode", "inputs": {"samples": ["2", 0], "vae": ["1", 0]}},
             "4": {"class_type": "SaveImage", "inputs": {"images": ["3", 0]}},
         }
+        monkeypatch.setattr(
+            bridge,
+            "get_object_info",
+            lambda: {node["class_type"]: {"input": {"required": {}}} for node in workflow.values()},
+        )
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is True
         assert result["node_count"] == 4
@@ -303,10 +322,15 @@ class TestComfyUIBridge:
         assert result["valid"] is False
         assert any("API format" in error for error in result["errors"])
 
-    def test_validate_workflow_bad_reference(self):
+    def test_validate_workflow_bad_reference(self, monkeypatch):
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
         bridge = ComfyUIBridge()
+        monkeypatch.setattr(
+            bridge,
+            "get_object_info",
+            lambda: {"VAEDecode": {"input": {"required": {}}}},
+        )
         workflow = {
             "1": {"class_type": "VAEDecode", "inputs": {"samples": ["99", 0]}},
         }
@@ -426,20 +450,7 @@ class TestComfyUIBridge:
         """Validate a realistic multi-node workflow with proper cross-references."""
         from dcc_mcp_comfyui.bridge import ComfyUIBridge
 
-        # Mock get_node_names to avoid HTTP call
         bridge = ComfyUIBridge()
-        monkeypatch.setattr(
-            bridge,
-            "get_node_names",
-            lambda: [
-                "CheckpointLoaderSimple",
-                "CLIPTextEncode",
-                "KSampler",
-                "VAEDecode",
-                "SaveImage",
-                "EmptyLatentImage",
-            ],
-        )
 
         workflow = {
             "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "v1-5-pruned.safetensors"}},
@@ -464,6 +475,11 @@ class TestComfyUIBridge:
             "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
             "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "result"}},
         }
+        monkeypatch.setattr(
+            bridge,
+            "get_object_info",
+            lambda: {node["class_type"]: {"input": {"required": {}}} for node in workflow.values()},
+        )
         result = bridge.validate_workflow(workflow)
         assert result["valid"] is True
         assert result["node_count"] == 7

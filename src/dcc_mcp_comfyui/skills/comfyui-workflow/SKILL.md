@@ -13,13 +13,15 @@ metadata:
 
 # ComfyUI Workflow
 
-Manage ComfyUI workflows: validate, submit, monitor status, and retrieve output artifacts.
+Manage ComfyUI workflows: validate, submit, monitor status, and resolve prompt-owned output artifacts.
 
 ## Purpose
 
 Bridge AI agents to ComfyUI's REST API for Stable Diffusion workflow automation.
-This skill provides the MVP vertical slice: validate workflow JSON, submit to
-ComfyUI's queue, poll for completion, and retrieve generated images for DCC asset handoff.
+This skill validates workflow JSON, submits it to ComfyUI's queue, polls for
+completion, and resolves generated images for DCC asset handoff. Use
+`comfyui-catalog` before authoring node graphs, `comfyui-queue` for operational
+recovery, and `comfyui-assets` for bounded upload/download.
 
 ## Tools
 
@@ -55,7 +57,7 @@ Query execution status and outputs for a submitted prompt.
 
 ### get_artifact
 
-Get download URL for a specific output artifact.
+Prove the exact prompt owns one matching artifact and return its download URL.
 
 **Parameters:**
 - `prompt_id` (string, required): The prompt ID.

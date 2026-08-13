@@ -16,13 +16,14 @@ _Illustrative workflow generated with OpenAI ImageGen from the retained source i
 
 ## Capabilities
 
-- `validate_workflow` checks API-format structure, graph references, live node classes, and required inputs against the running ComfyUI registry.
-- `submit_workflow` validates before queue submission and can wait for a bounded terminal result.
-- `query_job_status` returns status, node outputs, errors, and normalized artifact metadata.
-- `get_artifact` builds a local download URL for a known output without exposing filesystem paths.
+- Workflow validation checks API-format structure, graph references, live node classes, and required inputs before queue submission.
+- Catalog discovery exposes bounded features, models, embeddings, node summaries, exact node contracts, and redacted device/runtime status.
+- Queue operations inspect IDs without workflow bodies, target one exact prompt for cancellation or history deletion, and verify the resulting state; running cancellation fails closed instead of falling back to ComfyUI's legacy global interrupt.
+- Asset handoff uploads bounded images with SHA-256 provenance and atomically downloads only artifacts proven to belong to the requested prompt.
+- Artifact discovery is shape-based rather than tied to English labels or an image-only key, so file-shaped image, animation, video, audio, 3D, and custom-node outputs share one bounded contract.
 - Standalone discovery, packaged Skill subprocesses, and six-part DCC-MCP readiness are supported out of the box.
 
-The production path was live-validated on ComfyUI 0.31.0 with a three-node `EmptyImage -> ImageInvert -> SaveImage` workflow, including typed CLI validation, execution, status polling, and artifact retrieval.
+The production path was live-validated on ComfyUI 0.32.0 with a three-node `EmptyImage -> ImageInvert -> SaveImage` workflow, including typed validation, execution, status polling, and artifact retrieval.
 
 ## Quick Start
 
@@ -49,14 +50,17 @@ dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188
 
 ## Skills
 
-### comfyui-workflow
+The wheel includes four validated Skills and 17 typed tools:
 
-The bundled Skill for ComfyUI workflow management:
+| Skill | Tools | Boundary |
+|---|---:|---|
+| `comfyui-workflow` | 4 | Validate, submit, monitor, and resolve exact prompt-owned artifacts |
+| `comfyui-catalog` | 7 | Features, model folders, models, embeddings, node summaries/contracts, and redacted runtime status |
+| `comfyui-queue` | 4 | Redacted queue inspection, exact cancellation/history deletion, and memory reclamation |
+| `comfyui-assets` | 2 | Bounded image upload and atomic prompt-owned artifact download |
 
-- `validate_workflow` — Validate workflow JSON structure
-- `submit_workflow` — Submit workflow for execution
-- `query_job_status` — Poll execution status and outputs
-- `get_artifact` — Get download URL for output images
+The public surface does not expose arbitrary Python, raw process arguments,
+local ComfyUI install paths, bulk queue deletion, or unbounded catalog dumps.
 
 ## MCP Client Config
 

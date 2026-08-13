@@ -1,0 +1,76 @@
+tools:
+  - name: inspect_queue
+    description: Read running and pending prompt IDs and counts without workflow bodies.
+    source_file: scripts/inspect_queue.py
+    execution: sync
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 15
+    input_schema: {type: object, properties: {}}
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties: {success: {type: boolean}, message: {type: string}, context: {type: object}}
+    annotations: {read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: true}
+    tags: [comfyui, queue, read-only]
+
+  - name: cancel_prompt
+    description: Cancel one exact running job or remove one exact pending prompt, then verify absence; never use global interrupt.
+    source_file: scripts/cancel_prompt.py
+    execution: sync
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 30
+    input_schema:
+      type: object
+      required: [prompt_id]
+      properties: {prompt_id: {type: string, minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9_-]+$"}}
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties: {success: {type: boolean}, message: {type: string}, context: {type: object}}
+    annotations: {read_only_hint: false, destructive_hint: true, idempotent_hint: true, open_world_hint: true}
+    tags: [comfyui, queue, destructive]
+    call_examples:
+      - arguments: {prompt_id: 11111111-2222-3333-4444-555555555555}
+
+  - name: delete_history_entry
+    description: Delete and verify one exact ComfyUI prompt history entry.
+    source_file: scripts/delete_history_entry.py
+    execution: sync
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 30
+    input_schema:
+      type: object
+      required: [prompt_id]
+      properties: {prompt_id: {type: string, minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9_-]+$"}}
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties: {success: {type: boolean}, message: {type: string}, context: {type: object}}
+    annotations: {read_only_hint: false, destructive_hint: true, idempotent_hint: true, open_world_hint: true}
+    tags: [comfyui, history, destructive]
+
+  - name: free_memory
+    description: Ask ComfyUI to unload models and/or reclaim cached memory.
+    source_file: scripts/free_memory.py
+    execution: sync
+    job_strategy: monolithic
+    affinity: any
+    enforce_thread_affinity: true
+    timeout_hint_secs: 30
+    input_schema:
+      type: object
+      properties:
+        unload_models: {type: boolean, default: false}
+        free_memory: {type: boolean, default: true}
+    output_schema:
+      type: object
+      required: [success, message, context]
+      properties: {success: {type: boolean}, message: {type: string}, context: {type: object}}
+    annotations: {read_only_hint: false, destructive_hint: false, idempotent_hint: true, open_world_hint: true}
+    tags: [comfyui, memory, operations]
