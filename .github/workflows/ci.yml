@@ -79,7 +79,7 @@ jobs:
         shell: bash
         run: |
           python -m pip install --force-reinstall --no-deps dist/*.whl
-          python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skill_runtime.py').is_file(); assert root.joinpath('comfyui_custom_nodes', 'dcc_mcp_sync', 'web', 'dcc_mcp_sync.js').is_file(); expected = {'comfyui-workflow': 5, 'comfyui-catalog': 7, 'comfyui-queue': 4, 'comfyui-assets': 2}; import yaml; actual = {name: len(yaml.safe_load(root.joinpath('skills', name, 'tools.yaml').read_text(encoding='utf-8'))['tools']) for name in expected}; assert actual == expected, actual"
+          python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skill_runtime.py').is_file(); assert root.joinpath('comfyui_custom_nodes', 'dcc_mcp_sync', 'web', 'dcc_mcp_sync.js').is_file(); assert root.joinpath('schemas', 'adapter-install-sop-v1.schema.json').is_file(); expected = {'comfyui-workflow': 5, 'comfyui-catalog': 7, 'comfyui-queue': 4, 'comfyui-assets': 2}; import yaml; actual = {name: len(yaml.safe_load(root.joinpath('skills', name, 'tools.yaml').read_text(encoding='utf-8'))['tools']) for name in expected}; assert actual == expected, actual"
           python -c "import importlib.metadata as m, subprocess; expected = m.version('dcc-mcp-comfyui'); actual = subprocess.check_output(['dcc-mcp-comfyui', '--version'], text=True).strip(); assert actual == expected, (actual, expected)"
 
   comfyui-integration:
@@ -104,12 +104,34 @@ jobs:
           cache: pip
           cache-dependency-path: .ci/ComfyUI/requirements.txt
       - name: Install ComfyUI and the pending adapter contracts
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r .ci/ComfyUI/requirements.txt
           python -m pip install .ci/dcc-mcp-core
           python -m pip install -e . --no-deps
-          cp -R src/dcc_mcp_comfyui/comfyui_custom_nodes/dcc_mcp_sync .ci/ComfyUI/custom_nodes/dcc_mcp_sync
+
+          python_executable="$(python -c 'import sys; print(sys.executable)')"
+          receipt="$GITHUB_WORKSPACE/.ci/comfyui-receipt.json"
+          common=(--json --dcc-path "$GITHUB_WORKSPACE/.ci/ComfyUI" --python "$python_executable" --receipt-path "$receipt")
+          dcc-mcp-comfyui install --dry-run "${common[@]}" > .ci/install-plan.json
+
+          set +e
+          dcc-mcp-comfyui install --yes "${common[@]}" > .ci/install.json
+          install_exit=$?
+          set -e
+          test "$install_exit" -eq 50
+          dcc-mcp-comfyui status --json --receipt-path "$receipt" > .ci/status.json
+          dcc-mcp-comfyui uninstall --yes --json --receipt-path "$receipt" > .ci/uninstall.json
+          test ! -e .ci/ComfyUI/custom_nodes/dcc_mcp_sync
+          test ! -e "$receipt"
+
+          set +e
+          dcc-mcp-comfyui install --yes "${common[@]}" > .ci/final-install.json
+          install_exit=$?
+          set -e
+          test "$install_exit" -eq 50
+          python -c "import json; reports = [json.load(open(path, encoding='utf-8')) for path in ('.ci/install-plan.json', '.ci/install.json', '.ci/status.json', '.ci/uninstall.json', '.ci/final-install.json')]; assert all(report['schema_version'] == 1 for report in reports); assert reports[2]['install_state'] == 'installed'; assert reports[3]['install_state'] == 'fresh'"
       - name: Start ComfyUI and verify 3D asset sync
         shell: bash
         run: |
@@ -142,6 +164,15 @@ jobs:
             cat "$RUNNER_TEMP/comfyui.log"
             exit 1
           fi
+
+          dcc-mcp-comfyui doctor --json \
+            --comfyui-base-url http://127.0.0.1:8188 \
+            --python "$(command -v python)" \
+            --receipt-path "$GITHUB_WORKSPACE/.ci/comfyui-receipt.json" \
+            --sync-source-root "$source_root" \
+            --input-dir "$input_root" \
+            > "$RUNNER_TEMP/comfyui-doctor.json"
+          python -c "import json, os; report = json.load(open(os.path.join(os.environ['RUNNER_TEMP'], 'comfyui-doctor.json'), encoding='utf-8')); assert report['verify']['directly_usable'] is True; assert report['connectivity']['sync_node_ready'] is True; assert report['connectivity']['comfyui_version'] == '0.32.0'"
 
           python scripts/ci_comfyui_smoke.py \
             --base-url http://127.0.0.1:8188 \

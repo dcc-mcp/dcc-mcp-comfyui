@@ -29,9 +29,15 @@ The production path was live-validated on ComfyUI 0.32.0 with a three-node `Empt
 
 ## Quick Start
 
+See the canonical [agent-first Install SOP](install.md) for JSON doctor,
+transactional custom-node installation, verify, upgrade, and uninstall.
+
 ```bash
 # Install
 pip install dcc-mcp-comfyui
+
+# Install the bundled Load3D sync node (plan first, then repeat with --yes)
+dcc-mcp-comfyui install --json --dry-run --dcc-path /absolute/path/to/ComfyUI
 
 # Start ComfyUI locally (in another terminal)
 python main.py --listen 127.0.0.1
