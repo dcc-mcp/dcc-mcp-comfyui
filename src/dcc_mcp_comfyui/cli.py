@@ -12,6 +12,19 @@ from dcc_mcp_comfyui.__version__ import __version__
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    raw_argv = list(argv) if argv is not None else sys.argv[1:]
+    if raw_argv and raw_argv[0] in {
+        "doctor",
+        "verify",
+        "install",
+        "status",
+        "uninstall",
+        "upgrade",
+    }:
+        from dcc_mcp_comfyui.install import main as install_main  # noqa: PLC0415
+
+        return install_main(raw_argv)
+
     parser = argparse.ArgumentParser(description="ComfyUI MCP Server")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument(
@@ -38,7 +51,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="ComfyUI request timeout in seconds (default: 120)",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_argv)
 
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
