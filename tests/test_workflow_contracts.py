@@ -81,6 +81,16 @@ def _run_lines(step: dict) -> list[str]:
     return [line.strip() for line in run.splitlines() if line.strip() and not line.lstrip().startswith("#")]
 
 
+def _replace_once_in_job(text: str, job_name: str, old: str, new: str) -> str:
+    marker = f"  {job_name}:\n"
+    start = text.index(marker) + len(marker)
+    next_job = re.search(r"(?m)^  [a-z][a-z0-9-]*:\n", text[start:])
+    end = len(text) if next_job is None else start + next_job.start()
+    job_text = text[start:end]
+    assert job_text.count(old) == 1
+    return text[:start] + job_text.replace(old, new, 1) + text[end:]
+
+
 def _assert_unique_steps(job_name: str, job: dict) -> None:
     names = [step["name"] for step in _steps(job) if "name" in step]
     ids = [step["id"] for step in _steps(job) if "id" in step]
@@ -190,6 +200,7 @@ def _validate_release_contract(text: str) -> None:
         assert download["uses"] == "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093"
         assert download["with"]["artifact-ids"] == "${{ needs.build-release-artifact.outputs.artifact_id }}"
         assert download["with"]["path"] == "dist"
+        assert download["with"]["merge-multiple"] is True
 
     publish = jobs["publish-pypi"]
     assert publish["permissions"] == {"actions": "read", "contents": "read", "id-token": "write"}
@@ -369,6 +380,24 @@ def test_release_contract_rejects_prefixed_suffixed_variable_and_decoy_checksums
     for replacement in (prefix, suffix, variable_with_decoy):
         with pytest.raises(AssertionError):
             _validate_release_contract(text.replace(checksum, replacement, 1))
+
+
+def test_release_contract_requires_exact_boolean_merged_downloads() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    setting = "          merge-multiple: true\n"
+
+    for job_name in ("publish-pypi", "attach-github-release"):
+        missing = _replace_once_in_job(text, job_name, setting, "")
+        false_value = _replace_once_in_job(text, job_name, setting, "          merge-multiple: false\n")
+        string_value = _replace_once_in_job(text, job_name, setting, '          merge-multiple: "true"\n')
+        wrong_step = _replace_once_in_job(missing, job_name, "          fetch-depth: 0\n", setting)
+        comment_decoy = _replace_once_in_job(
+            missing, job_name, "          path: dist\n", "          path: dist\n# merge-multiple: true\n"
+        )
+
+        for tampered in (missing, false_value, string_value, wrong_step, comment_decoy):
+            with pytest.raises((AssertionError, KeyError)):
+                _validate_release_contract(tampered)
 
 
 def test_release_contract_rejects_unbound_artifact_digest_checks() -> None:

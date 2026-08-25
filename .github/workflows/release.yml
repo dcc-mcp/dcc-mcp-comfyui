@@ -131,6 +131,7 @@ jobs:
         with:
           artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}
           path: dist
+          merge-multiple: true
       - name: Revalidate release immediately before PyPI
         shell: bash
         env:
@@ -201,6 +202,7 @@ jobs:
         with:
           artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}
           path: dist
+          merge-multiple: true
       - name: Revalidate release immediately before GitHub upload
         shell: bash
         env:
