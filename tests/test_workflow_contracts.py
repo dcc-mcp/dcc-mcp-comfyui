@@ -44,10 +44,19 @@ PINNED_ACTIONS = {
 
 
 class _UniqueKeyLoader(yaml.SafeLoader):
-    pass
+    def compose_node(self, parent, index):
+        event = self.peek_event()
+        if getattr(event, "anchor", None) is not None:
+            raise AssertionError("YAML anchors and aliases are forbidden")
+        if getattr(event, "tag", None) is not None:
+            raise AssertionError("explicit YAML tags are forbidden")
+        return super().compose_node(parent, index)
 
 
 def _construct_unique_mapping(loader, node, deep=False):
+    for key_node, _ in node.value:
+        if key_node.tag == "tag:yaml.org,2002:merge" or key_node.value == "<<":
+            raise AssertionError("YAML merge keys are forbidden")
     mapping = {}
     for key, value in loader.construct_pairs(node, deep=deep):
         if key in mapping:
@@ -397,6 +406,74 @@ def test_release_contract_requires_exact_boolean_merged_downloads() -> None:
 
         for tampered in (missing, false_value, string_value, wrong_step, comment_decoy):
             with pytest.raises((AssertionError, KeyError)):
+                _validate_release_contract(tampered)
+
+
+def test_release_contract_rejects_anchored_download_boolean() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    canonical = "          merge-multiple: true\n"
+
+    for job_name in ("publish-pypi", "attach-github-release"):
+        anchored = _replace_once_in_job(text, job_name, canonical, "          merge-multiple: &merged true\n")
+        with pytest.raises(AssertionError):
+            _validate_release_contract(anchored)
+
+
+def test_release_contract_rejects_aliased_download_mapping() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    canonical = (
+        "        with:\n"
+        "          artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}\n"
+        "          path: dist\n"
+        "          merge-multiple: true\n"
+    )
+    anchored_mapping = (
+        "    x-release-download-inputs: &release_download_inputs\n"
+        "      artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}\n"
+        "      path: dist\n"
+        "      merge-multiple: true\n"
+        "    steps:\n"
+    )
+
+    for job_name in ("publish-pypi", "attach-github-release"):
+        aliased = _replace_once_in_job(text, job_name, canonical, "        with: *release_download_inputs\n")
+        aliased = _replace_once_in_job(aliased, job_name, "    steps:\n", anchored_mapping)
+        with pytest.raises(AssertionError):
+            _validate_release_contract(aliased)
+
+
+def test_release_contract_rejects_explicitly_tagged_download_boolean() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    canonical = "          merge-multiple: true\n"
+
+    for job_name in ("publish-pypi", "attach-github-release"):
+        tagged = _replace_once_in_job(text, job_name, canonical, "          merge-multiple: !!bool true\n")
+        with pytest.raises(AssertionError):
+            _validate_release_contract(tagged)
+
+
+def test_release_contract_rejects_duplicate_and_merged_download_keys() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    canonical_flag = "          merge-multiple: true\n"
+    canonical_mapping = (
+        "        with:\n"
+        "          artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}\n"
+        "          path: dist\n"
+        "          merge-multiple: true\n"
+    )
+    merged_mapping = (
+        "        with:\n"
+        "          <<:\n"
+        "            artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}\n"
+        "            path: dist\n"
+        "          merge-multiple: true\n"
+    )
+
+    for job_name in ("publish-pypi", "attach-github-release"):
+        duplicate = _replace_once_in_job(text, job_name, canonical_flag, canonical_flag * 2)
+        merged = _replace_once_in_job(text, job_name, canonical_mapping, merged_mapping)
+        for tampered in (duplicate, merged):
+            with pytest.raises(AssertionError):
                 _validate_release_contract(tampered)
 
 
