@@ -20,9 +20,12 @@ HEAD_SOURCE_BINDING = 'test "$(git rev-parse HEAD)" = "$source_sha"'
 GH_UPLOAD_COMMAND = 'gh release upload "$TAG" dist/*.whl dist/*.tar.gz --repo "$GITHUB_REPOSITORY"'
 ARTIFACT_METADATA_COMMAND = 'artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"'
 ARTIFACT_ARCHIVE_COMMAND = 'gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$artifact_archive"'
-ARTIFACT_DIGEST_COMMAND = 'test "$(sha256sum "$artifact_archive" | cut -d\' \' -f1)" = "$expected_artifact_digest"'
+RAW_ARTIFACT_DIGEST_GUARD = '[[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]'
+ARTIFACT_DIGEST_COMMAND = 'test "$(sha256sum "$artifact_archive" | cut -d\' \' -f1)" = "$ARTIFACT_DIGEST"'
 ARTIFACT_ID_COMMAND = 'test "$(jq -r \'.id // empty\' <<< "$artifact_metadata")" = "$ARTIFACT_ID"'
-ARTIFACT_METADATA_DIGEST_COMMAND = 'test "$(jq -r \'.digest // empty\' <<< "$artifact_metadata")" = "$ARTIFACT_DIGEST"'
+ARTIFACT_METADATA_DIGEST_COMMAND = (
+    'test "$(jq -r \'.digest // empty\' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"'
+)
 ARTIFACT_HEAD_COMMAND = 'test "$(jq -r \'.workflow_run.head_sha // empty\' <<< "$artifact_metadata")" = "$SOURCE_SHA"'
 ARTIFACT_URL_COMMAND = (
     'test "$(jq -r \'.archive_download_url // empty\' <<< "$artifact_metadata")" = '
@@ -93,6 +96,12 @@ def _assert_pinned_actions(jobs: dict) -> None:
             owner, value = uses.split("@", 1)
             assert SHA.fullmatch(value), uses
             assert value == PINNED_ACTIONS[owner], uses
+
+
+def _validate_digest_fixture(raw_digest: str, api_digest: str, archive_digest: str) -> None:
+    assert re.fullmatch(r"[0-9a-f]{64}", raw_digest)
+    assert api_digest == f"sha256:{raw_digest}"
+    assert archive_digest == raw_digest
 
 
 def _validate_ci_contract(text: str) -> None:
@@ -228,6 +237,12 @@ def _validate_release_contract(text: str) -> None:
         ):
             assert required in verify["run"]
         lines = _run_lines(verify)
+        digest_lines = [line for line in lines if "ARTIFACT_DIGEST" in line]
+        assert digest_lines == [
+            RAW_ARTIFACT_DIGEST_GUARD,
+            ARTIFACT_METADATA_DIGEST_COMMAND,
+            ARTIFACT_DIGEST_COMMAND,
+        ]
         assert ARTIFACT_METADATA_COMMAND in lines
         assert ARTIFACT_ID_COMMAND in lines
         assert ARTIFACT_METADATA_DIGEST_COMMAND in lines
@@ -243,6 +258,12 @@ def test_ci_uses_real_floor_and_latest_dependency_resolution() -> None:
 
 def test_release_builds_once_and_reuses_one_identity_bound_artifact() -> None:
     _validate_release_contract(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+
+
+def test_upload_artifact_and_api_digest_real_format_fixture() -> None:
+    raw_digest = "28e3b433b85e7914ed9bcf832d393100d15a49b8fbe37d01438d0253c6ee0369"
+
+    _validate_digest_fixture(raw_digest, f"sha256:{raw_digest}", raw_digest)
 
 
 def test_release_contract_ignores_adversarial_comment_and_decoy_text() -> None:
@@ -328,6 +349,29 @@ def test_release_contract_rejects_unbound_artifact_digest_checks() -> None:
         _validate_release_contract(text.replace(ARTIFACT_ID_COMMAND, "true", 1))
     with pytest.raises(AssertionError):
         _validate_release_contract(text.replace(ARTIFACT_METADATA_DIGEST_COMMAND, "true", 1))
+
+
+def test_release_contract_rejects_reversed_loose_stripped_and_decoy_digest_bindings() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    reversed_comparison = ARTIFACT_METADATA_DIGEST_COMMAND.replace(
+        'test "$(jq -r \'.digest // empty\' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"',
+        'test "$ARTIFACT_DIGEST" = "$(jq -r \'.digest // empty\' <<< "$artifact_metadata")"',
+    )
+    loose_guard = '[[ "$ARTIFACT_DIGEST" =~ [0-9a-f]{64} ]]'
+    strip_all = (
+        'normalized_digest="${ARTIFACT_DIGEST//sha256:/}"\n'
+        '          test "$(sha256sum "$artifact_archive" | cut -d\' \' -f1)" = "$normalized_digest"'
+    )
+    decoy = "          # " + ARTIFACT_METADATA_DIGEST_COMMAND + "\n"
+
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(ARTIFACT_METADATA_DIGEST_COMMAND, reversed_comparison, 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(RAW_ARTIFACT_DIGEST_GUARD, loose_guard, 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(ARTIFACT_DIGEST_COMMAND, strip_all, 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace("          " + ARTIFACT_METADATA_DIGEST_COMMAND, decoy, 1))
 
 
 def _git(cwd: Path, *args: str) -> str:
