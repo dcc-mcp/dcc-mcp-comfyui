@@ -4,46 +4,113 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      tag_name:
-        description: Existing tag to rebuild and publish
-        required: false
-        default: ""
-      publish_to_pypi:
-        description: Publish a manually rebuilt tag to PyPI
-        type: boolean
-        required: false
-        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   release-please:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
       pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name || inputs.tag_name }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: googleapis/release-please-action@0dfd8538845b8e92600d271a895a5372865d4062 # v5
-        id: release
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  build-and-publish:
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.tag_name != '' && inputs.publish_to_pypi)
+  build-release-artifact:
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_HOST: github.com
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
+      artifact_digest: ${{ steps.upload.outputs.artifact-digest }}
+    steps:
+      - name: Check out exact release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Capture immutable source identity
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
+          source_sha="$(git rev-parse "$TAG^{commit}")"
+          [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$source_sha"
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+      - name: Verify Release target before build
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
+          tag_sha="$(git rev-parse "$TAG^{commit}")"
+          target_commitish="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .target_commitish)"
+          if [[ "$target_commitish" =~ ^[0-9a-f]{40}$ ]]; then
+            target_sha="$target_commitish"
+          else
+            git fetch --force --no-tags origin "$target_commitish"
+            target_sha="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          fi
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$tag_sha" = "$SOURCE_SHA"
+          test "$target_sha" = "$SOURCE_SHA"
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine
+      - name: Build exact release distributions
+        run: python -m build
+      - name: Validate exact release distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m twine check dist/*
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          test "${#wheels[@]}" -eq 1
+          test "${#sdists[@]}" -eq 1
+          sha256sum dist/* > dist/SHA256SUMS
+      - name: Upload immutable release artifact
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-distributions-${{ github.run_id }}
+          path: dist/*
+          if-no-files-found: error
+          overwrite: false
+          retention-days: 7
+
+  publish-pypi:
+    needs: [release-please, build-release-artifact]
+    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -53,16 +120,109 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Check out immutable source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ needs.release-please.outputs.tag_name || inputs.tag_name }}
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+          ref: ${{ needs.build-release-artifact.outputs.source_sha }}
+          fetch-depth: 0
+      - name: Download immutable release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          python-version: "3.12"
-      - run: python -m pip install --upgrade pip build twine
-      - run: python -m build
-      - run: python -m twine check dist/*
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
+          artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}
+          path: dist
+      - name: Revalidate release immediately before PyPI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_HOST: github.com
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          SOURCE_SHA: ${{ needs.build-release-artifact.outputs.source_sha }}
+          ARTIFACT_ID: ${{ needs.build-release-artifact.outputs.artifact_id }}
+          ARTIFACT_DIGEST: ${{ needs.build-release-artifact.outputs.artifact_digest }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
+          tag_sha="$(git rev-parse "$TAG^{commit}")"
+          target_commitish="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .target_commitish)"
+          if [[ "$target_commitish" =~ ^[0-9a-f]{40}$ ]]; then
+            target_sha="$target_commitish"
+          else
+            git fetch --force --no-tags origin "$target_commitish"
+            target_sha="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          fi
+          test "$tag_sha" = "$SOURCE_SHA"
+          test "$target_sha" = "$SOURCE_SHA"
+          sha256sum --check dist/SHA256SUMS
+          rm dist/SHA256SUMS
+      - name: Publish exact artifact to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
+          packages-dir: dist/
           verbose: true
           print-hash: true
+
+  attach-github-release:
+    needs: [release-please, build-release-artifact]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out immutable source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build-release-artifact.outputs.source_sha }}
+          fetch-depth: 0
+      - name: Download immutable release artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}
+          path: dist
+      - name: Revalidate release immediately before GitHub upload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_HOST: github.com
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          SOURCE_SHA: ${{ needs.build-release-artifact.outputs.source_sha }}
+          ARTIFACT_ID: ${{ needs.build-release-artifact.outputs.artifact_id }}
+          ARTIFACT_DIGEST: ${{ needs.build-release-artifact.outputs.artifact_digest }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
+          tag_sha="$(git rev-parse "$TAG^{commit}")"
+          target_commitish="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .target_commitish)"
+          if [[ "$target_commitish" =~ ^[0-9a-f]{40}$ ]]; then
+            target_sha="$target_commitish"
+          else
+            git fetch --force --no-tags origin "$target_commitish"
+            target_sha="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          fi
+          test "$tag_sha" = "$SOURCE_SHA"
+          test "$target_sha" = "$SOURCE_SHA"
+          sha256sum --check dist/SHA256SUMS
+          mapfile -t files < <(find dist -maxdepth 1 -type f -printf '%f\n' | sort)
+          test "${#files[@]}" -eq 3
+          existing_assets="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name')"
+          for file in "${files[@]}"; do
+            if printf '%s\n' "$existing_assets" | grep -Fqx -- "$file"; then
+              echo "release asset already exists: $file" >&2
+              exit 1
+            fi
+          done
+      - name: Attach exact release artifacts without clobber
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_HOST: github.com
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY"

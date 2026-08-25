@@ -1,0 +1,44 @@
+name: Version consistency
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+    paths:
+      - ".release-please-manifest.json"
+      - ".github/workflows/release-please-lock-sync.yml"
+      - ".github/workflows/version-consistency.yml"
+      - "pyproject.toml"
+      - "release-please-config.json"
+      - "scripts/ci/check_uv_lock.py"
+      - "uv.lock"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  version-consistency:
+    name: Check version and lock consistency
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - uses: loonghao/vx@72d0ab2dcf855149aecf558ac846ddeb35216474 # v0.9.11
+        with:
+          version: "0.9.11"
+      - name: Check uv lock consistency
+        run: |
+          python scripts/ci/check_uv_lock.py
+          vx uv lock --check

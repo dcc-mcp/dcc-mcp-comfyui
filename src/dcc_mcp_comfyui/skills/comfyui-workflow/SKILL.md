@@ -13,6 +13,9 @@ metadata:
 
 # ComfyUI Workflow
 
+Runtime contract: `dcc-mcp-core>=0.20.8,<1.0.0`. Package and CI validation do
+not establish readiness of a live ComfyUI host.
+
 Manage ComfyUI workflows: validate, submit, monitor status, resolve prompt-owned
 output artifacts, and stage versioned producer exports into ComfyUI's `Load3D`
 input area.

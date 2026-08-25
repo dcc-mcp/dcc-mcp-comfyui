@@ -13,6 +13,9 @@ metadata:
 
 # ComfyUI Queue
 
+Runtime contract: `dcc-mcp-core>=0.20.8,<1.0.0`. Package and CI validation do
+not establish readiness of a live ComfyUI host.
+
 Inspect queue identifiers and perform bounded operational recovery. Queue reads
 return IDs and counts rather than full workflow bodies. Mutations validate one
 exact prompt ID and verify the resulting state.

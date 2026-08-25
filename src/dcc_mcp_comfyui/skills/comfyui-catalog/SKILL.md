@@ -13,6 +13,9 @@ metadata:
 
 # ComfyUI Catalog
 
+Runtime contract: `dcc-mcp-core>=0.20.8,<1.0.0`. Package and CI validation do
+not establish readiness of a live ComfyUI host.
+
 Inspect the live ComfyUI capability surface without exposing process arguments,
 local install paths, full queue workflows, or an unbounded object-info catalog.
 
