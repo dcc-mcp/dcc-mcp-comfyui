@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.1...v0.1.2) (2026-08-25)
+
+
+### Features
+
+* add ComfyUI install lifecycle ([cce93fe](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/cce93fe14eaf27ae7a9e28e65bb8b608dee7558b))
+* add interactive 3d asset sync ([25aa3b7](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/25aa3b7d5d66847807379e73d753da0cf6128491))
+
+
+### Bug Fixes
+
+* reject cross-platform absolute asset paths ([9a0aedb](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/9a0aedbcbf0bae928f0b90511ed36bffbdcd22f1))
+
 ## [0.1.1](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.0...v0.1.1) (2026-08-13)
 
 
