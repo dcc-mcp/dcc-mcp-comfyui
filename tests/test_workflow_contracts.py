@@ -31,6 +31,7 @@ ARTIFACT_URL_COMMAND = (
     'test "$(jq -r \'.archive_download_url // empty\' <<< "$artifact_metadata")" = '
     '"https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"'
 )
+FINAL_VERIFIER_TAIL = ["sha256sum --check dist/SHA256SUMS", "rm dist/SHA256SUMS"]
 
 PINNED_ACTIONS = {
     "googleapis/release-please-action": "45996ed1f6d02564a971a2fa1b5860e934307cf7",
@@ -199,7 +200,7 @@ def _validate_release_contract(text: str) -> None:
         "Publish exact artifact to PyPI",
     ]
     verify_pypi_index, verify_pypi = _step(publish, "Revalidate release immediately before PyPI")
-    assert _run_lines(verify_pypi)[-1] == "rm dist/SHA256SUMS"
+    assert _run_lines(verify_pypi)[-2:] == FINAL_VERIFIER_TAIL
     assert _steps(publish)[verify_pypi_index + 1]["uses"] == (
         "pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33"
     )
@@ -214,7 +215,7 @@ def _validate_release_contract(text: str) -> None:
         "Attach exact release artifacts without clobber",
     ]
     verify_gh_index, verify_gh = _step(attach, "Revalidate release immediately before GitHub upload")
-    assert _run_lines(verify_gh)[-1] == "rm dist/SHA256SUMS"
+    assert _run_lines(verify_gh)[-2:] == FINAL_VERIFIER_TAIL
     mutation = _steps(attach)[verify_gh_index + 1]
     assert mutation["name"] == "Attach exact release artifacts without clobber"
     assert mutation["run"] == GH_UPLOAD_COMMAND
@@ -334,6 +335,40 @@ def test_release_contract_rejects_post_verify_steps_and_nonfinal_sidecar_removal
         _validate_release_contract(text.replace("          rm dist/SHA256SUMS", "          true", 1))
     with pytest.raises(AssertionError):
         _validate_release_contract(gh_without_final_removal)
+
+
+def test_release_contract_rejects_checksum_to_publish_tampering() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    checksum = "          sha256sum --check dist/SHA256SUMS"
+    tamper = checksum + "\n          printf tamper >> dist/*.whl"
+    py_pypi_tamper = text.replace(checksum, tamper, 1)
+    before_gh, after_gh = text.rsplit(checksum, 1)
+    github_tamper = before_gh + tamper + after_gh
+    removal = "          rm dist/SHA256SUMS"
+    post_removal_tamper = removal + "\n          printf tamper >> dist/*.whl"
+    py_pypi_post_removal = text.replace(removal, post_removal_tamper, 1)
+    before_gh_removal, after_gh_removal = text.rsplit(removal, 1)
+    github_post_removal = before_gh_removal + post_removal_tamper + after_gh_removal
+
+    for tampered in (py_pypi_tamper, github_tamper, py_pypi_post_removal, github_post_removal):
+        with pytest.raises(AssertionError):
+            _validate_release_contract(tampered)
+
+
+def test_release_contract_rejects_prefixed_suffixed_variable_and_decoy_checksums() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    checksum = "          sha256sum --check dist/SHA256SUMS"
+    prefix = "          true && sha256sum --check dist/SHA256SUMS"
+    suffix = "          sha256sum --check dist/SHA256SUMS && true"
+    variable_with_decoy = (
+        "          # sha256sum --check dist/SHA256SUMS\n"
+        '          checksum=(sha256sum --check "dist/SHA256SUMS")\n'
+        '          "${checksum[@]}"'
+    )
+
+    for replacement in (prefix, suffix, variable_with_decoy):
+        with pytest.raises(AssertionError):
+            _validate_release_contract(text.replace(checksum, replacement, 1))
 
 
 def test_release_contract_rejects_unbound_artifact_digest_checks() -> None:

@@ -243,7 +243,6 @@ jobs:
           test "${#wheels[@]}" -eq 1
           test "${#sdists[@]}" -eq 1
           test "${#files[@]}" -eq 3
-          sha256sum --check dist/SHA256SUMS
           existing_assets="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name')"
           release_files=("${wheels[0]}" "${sdists[0]}")
           test "${#release_files[@]}" -eq 2
@@ -254,6 +253,7 @@ jobs:
               exit 1
             fi
           done
+          sha256sum --check dist/SHA256SUMS
           rm dist/SHA256SUMS
       - name: Attach exact release artifacts without clobber
         shell: bash
