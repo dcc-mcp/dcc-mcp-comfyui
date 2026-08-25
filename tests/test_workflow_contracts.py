@@ -53,6 +53,18 @@ class _UniqueKeyLoader(yaml.SafeLoader):
         return super().compose_node(parent, index)
 
 
+_BOOL_TAG = "tag:yaml.org,2002:bool"
+_UniqueKeyLoader.yaml_implicit_resolvers = {
+    prefix: [resolver for resolver in resolvers if resolver[0] != _BOOL_TAG]
+    for prefix, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+_UniqueKeyLoader.add_implicit_resolver(
+    _BOOL_TAG,
+    re.compile(r"^(?:true|false)$", re.IGNORECASE),
+    list("tTfF"),
+)
+
+
 def _construct_unique_mapping(loader, node, deep=False):
     for key_node, _ in node.value:
         if key_node.tag == "tag:yaml.org,2002:merge" or key_node.value == "<<":
@@ -407,6 +419,43 @@ def test_release_contract_requires_exact_boolean_merged_downloads() -> None:
         for tampered in (missing, false_value, string_value, wrong_step, comment_decoy):
             with pytest.raises((AssertionError, KeyError)):
                 _validate_release_contract(tampered)
+
+
+@pytest.mark.parametrize("legacy_boolean", ["yes", "on", "YES", "ON", "no", "off", "NO", "OFF"])
+@pytest.mark.parametrize("job_name", ["publish-pypi", "attach-github-release"])
+def test_release_contract_rejects_yaml_1_1_boolean_spellings(job_name: str, legacy_boolean: str) -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    canonical = "          merge-multiple: true\n"
+    tampered = _replace_once_in_job(
+        text,
+        job_name,
+        canonical,
+        f"          merge-multiple: {legacy_boolean}\n",
+    )
+
+    with pytest.raises(AssertionError):
+        _validate_release_contract(tampered)
+
+
+@pytest.mark.parametrize("job_name", ["publish-pypi", "attach-github-release"])
+def test_release_contract_accepts_semantic_boolean_in_quoted_and_flow_mappings(job_name: str) -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    canonical = "          merge-multiple: true\n"
+    quoted_key = _replace_once_in_job(text, job_name, canonical, '          "merge-multiple": true\n')
+    canonical_mapping = (
+        "        with:\n"
+        "          artifact-ids: ${{ needs.build-release-artifact.outputs.artifact_id }}\n"
+        "          path: dist\n"
+        "          merge-multiple: true\n"
+    )
+    flow_mapping = (
+        "        with: {artifact-ids: '${{ needs.build-release-artifact.outputs.artifact_id }}', "
+        "path: dist, merge-multiple: true}\n"
+    )
+    flow_style = _replace_once_in_job(text, job_name, canonical_mapping, flow_mapping)
+
+    _validate_release_contract(quoted_key)
+    _validate_release_contract(flow_style)
 
 
 def test_release_contract_rejects_anchored_download_boolean() -> None:
