@@ -11,74 +11,78 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
+permissions: {}
 
 env:
-  DCC_MCP_CORE_REF: be7856247d209e26557505d96613f89e162b4695
   COMFYUI_REF: c2bcbecd82ec5ae66594340b395c24ef0217b238
 
 jobs:
   test:
-    name: Test Python ${{ matrix.python }} on ${{ matrix.os }}
+    name: Test Python ${{ matrix.python }} / Core ${{ matrix.core-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {os: ubuntu-latest, python: "3.10"}
-          - {os: ubuntu-latest, python: "3.13"}
-          - {os: windows-latest, python: "3.12"}
-          - {os: macos-latest, python: "3.12"}
-
+          - {os: ubuntu-latest, python: "3.10", core-version: "0.20.8"}
+          - {os: ubuntu-latest, python: "3.13", core-version: "0.20.19"}
+          - {os: windows-latest, python: "3.12", core-version: "0.20.19"}
+          - {os: macos-latest, python: "3.12", core-version: "0.20.19"}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: dcc-mcp/dcc-mcp-core
-          ref: ${{ env.DCC_MCP_CORE_REF }}
-          path: .ci/dcc-mcp-core
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python }}
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: "24"
-      - name: Prebuild the Core Admin UI on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Install resolved adapter and Core
         run: |
-          npm --prefix .ci/dcc-mcp-core/admin-ui ci --ignore-scripts --include=optional
-          npm --prefix .ci/dcc-mcp-core/admin-ui run build
-          "DCC_MCP_ADMIN_UI_PREBUILT=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - run: python -m pip install --upgrade pip
-      - name: Install the pending Core contract
-        run: python -m pip install .ci/dcc-mcp-core
-      - run: python -m pip install -e ".[dev]" --no-deps
-      - run: python -m pip install "httpx>=0.25.0" "pytest>=7.0" "pytest-mock>=3.0" "pytest-asyncio>=0.23" "pyyaml>=6.0"
-      - run: python -m pytest
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" "dcc-mcp-core==${{ matrix.core-version }}"
+      - name: Verify resolved dependency versions
+        env:
+          EXPECTED_CORE: ${{ matrix.core-version }}
+        run: |
+          python -m pip check
+          python -c "import importlib.metadata, os; assert importlib.metadata.version('dcc-mcp-core') == os.environ['EXPECTED_CORE']; assert importlib.metadata.version('dcc-mcp-comfyui') == '0.1.2'"
+      - name: Run tests
+        run: python -m pytest
 
   lint-and-build:
+    name: Lint, package, and validate Skills
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install "dcc-mcp-core==0.20.5"
-      - run: python -m pip install -e ".[dev]" --no-deps
-      - run: python -m pip install "httpx>=0.25.0" "ruff>=0.8.0" "build>=1.0" "pyyaml>=6.0" twine
-      - run: python -m ruff check .
-      - run: python -m ruff format --check .
-      - run: python -m build
-      - run: python -m twine check dist/*
+      - name: Install resolved build environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" "dcc-mcp-core==0.20.19"
+          python -m pip check
+      - name: Check generated lock projection
+        run: python scripts/ci/check_uv_lock.py
+      - name: Run Ruff checks
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+      - name: Validate bundled Skills
+        run: python scripts/ci/lint_skills.py
+      - name: Build and inspect distributions
+        run: |
+          python -m build
+          python -m twine check dist/*
       - name: Smoke test the built wheel
         shell: bash
         run: |
-          python -m pip install --force-reinstall --no-deps dist/*.whl
+          set -euo pipefail
+          python -m pip install --force-reinstall dist/*.whl
+          python -m pip check
           python -c "import importlib.metadata as m, importlib.resources as r, dcc_mcp_comfyui as p; assert p.__version__ == m.version('dcc-mcp-comfyui'); root = r.files('dcc_mcp_comfyui'); assert root.joinpath('skill_runtime.py').is_file(); assert root.joinpath('comfyui_custom_nodes', 'dcc_mcp_sync', 'web', 'dcc_mcp_sync.js').is_file(); assert root.joinpath('schemas', 'adapter-install-sop-v1.schema.json').is_file(); expected = {'comfyui-workflow': 5, 'comfyui-catalog': 7, 'comfyui-queue': 4, 'comfyui-assets': 2}; import yaml; actual = {name: len(yaml.safe_load(root.joinpath('skills', name, 'tools.yaml').read_text(encoding='utf-8'))['tools']) for name in expected}; assert actual == expected, actual"
           python -c "import importlib.metadata as m, subprocess; expected = m.version('dcc-mcp-comfyui'); actual = subprocess.check_output(['dcc-mcp-comfyui', '--version'], text=True).strip(); assert actual == expected, (actual, expected)"
 
@@ -86,13 +90,10 @@ jobs:
     name: ComfyUI v0.32.0 asset sync
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          repository: dcc-mcp/dcc-mcp-core
-          ref: ${{ env.DCC_MCP_CORE_REF }}
-          path: .ci/dcc-mcp-core
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: Comfy-Org/ComfyUI
@@ -103,13 +104,14 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: .ci/ComfyUI/requirements.txt
-      - name: Install ComfyUI and the pending adapter contracts
+      - name: Install ComfyUI and resolved adapter contracts
         shell: bash
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install -r .ci/ComfyUI/requirements.txt
-          python -m pip install .ci/dcc-mcp-core
-          python -m pip install -e . --no-deps
+          python -m pip install -e . "dcc-mcp-core==0.20.19"
+          python -m pip check
 
           python_executable="$(python -c 'import sys; print(sys.executable)')"
           receipt="$GITHUB_WORKSPACE/.ci/comfyui-receipt.json"

@@ -1,0 +1,58 @@
+name: Release lock sync
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+    branches: [main]
+    paths:
+      - ".release-please-manifest.json"
+      - "pyproject.toml"
+      - "release-please-config.json"
+      - "uv.lock"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync-uv-lock:
+    name: Sync generated uv.lock
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release-please--branches--main') &&
+      startsWith(github.event.pull_request.title, 'chore(main): release ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ github.token }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+      - uses: loonghao/vx@72d0ab2dcf855149aecf558ac846ddeb35216474 # v0.9.11
+        with:
+          version: "0.9.11"
+      - name: Sync generated lock metadata
+        run: |
+          vx uv lock
+          python scripts/ci/check_uv_lock.py
+      - name: Commit and push changes
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if git diff --quiet -- uv.lock; then
+            echo "uv.lock is already in sync."
+            exit 0
+          fi
+          git config user.name "loonghao"
+          git config user.email "hal.long@outlook.com"
+          git add uv.lock
+          git commit -m "chore(ci): sync generated lock metadata"
+          git push origin "HEAD:${HEAD_REF}"

@@ -15,7 +15,7 @@ not satisfy that contract.
 ## Requirements
 
 - Python 3.10 or newer.
-- `dcc-mcp-core>=0.20.6,<1.0.0` in the same interpreter as the adapter.
+- `dcc-mcp-core>=0.20.8,<1.0.0` in the same interpreter as the adapter.
 - ComfyUI 0.32.0 or newer with the built-in `Load3D` node.
 - The exact ComfyUI root containing `main.py` and `custom_nodes`.
 - A trusted producer export root and the active ComfyUI input root.
@@ -36,7 +36,7 @@ ComfyUI, scrapes a latest release, or writes an adapter-owned binary cache.
 | Windows | Python 3.10+, ComfyUI 0.32.0+, standard or portable layout |
 | macOS | Python 3.10+, ComfyUI 0.32.0+ source/application-managed layout |
 | Linux | Python 3.10+, ComfyUI 0.32.0+ source or managed-host layout |
-| DCC-MCP Core | `>=0.20.6,<1.0.0` |
+| DCC-MCP Core | `>=0.20.8,<1.0.0` |
 
 All platforms use the same HTTP and custom-node contract. Distribution and
 upgrades of ComfyUI itself remain operator-owned.

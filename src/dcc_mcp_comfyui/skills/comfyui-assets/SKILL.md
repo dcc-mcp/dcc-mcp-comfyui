@@ -13,6 +13,9 @@ metadata:
 
 # ComfyUI Assets
 
+Runtime contract: `dcc-mcp-core>=0.20.8,<1.0.0`. Package and CI validation do
+not establish readiness of a live ComfyUI host.
+
 Move bounded files across the ComfyUI API boundary. Uploads return byte-count
 and SHA-256 provenance without echoing the private source path. Downloads first
 prove that prompt history owns exactly one requested artifact, stream to a

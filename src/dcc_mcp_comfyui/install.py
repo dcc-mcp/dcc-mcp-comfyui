@@ -52,7 +52,7 @@ EXIT_REQUIRES_RESTART = INSTALL_EXIT_REQUIRES_RESTART
 
 SCHEMA_VERSION = 1
 DCC_TYPE = "comfyui"
-MIN_CORE_VERSION = "0.20.6"
+MIN_CORE_VERSION = "0.20.8"
 MIN_COMFYUI_VERSION = "0.32.0"
 CUSTOM_NODE_NAME = "dcc_mcp_sync"
 LIFECYCLE_COMMANDS = frozenset({"doctor", "verify", "install", "status", "uninstall", "upgrade"})

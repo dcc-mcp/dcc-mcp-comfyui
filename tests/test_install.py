@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from importlib.metadata import version as distribution_version
 
 import httpx
 
@@ -65,14 +66,22 @@ def _mock_python_probe(monkeypatch):
             returncode=0,
             stdout=json.dumps(
                 {
-                    "adapter_version": "0.1.1",
-                    "core_version": "0.20.6",
+                    "adapter_version": distribution_version("dcc-mcp-comfyui"),
+                    "core_version": install_lifecycle.MIN_CORE_VERSION,
                     "python": sys.executable,
                 }
             ),
             stderr="",
         ),
     )
+
+
+def test_python_probe_fixture_tracks_installed_adapter_version(monkeypatch):
+    _mock_python_probe(monkeypatch)
+
+    completed = subprocess.run([], capture_output=True, text=True)
+
+    assert json.loads(completed.stdout)["adapter_version"] == distribution_version("dcc-mcp-comfyui")
 
 
 def test_doctor_does_not_confuse_http_with_load3d_sync_readiness(tmp_path, capsys, monkeypatch):
@@ -162,6 +171,7 @@ def test_custom_node_receipt_round_trip_only_uninstalls_owned_files(tmp_path, ca
     assert receipt_path.is_file()
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt["dcc_type"] == "comfyui"
+    assert receipt["adapter_version"] == distribution_version("dcc-mcp-comfyui")
     assert receipt["target_path"] == str((comfyui_root / "custom_nodes" / "dcc_mcp_sync").resolve())
     assert "__init__.py" in receipt["files"]
 
