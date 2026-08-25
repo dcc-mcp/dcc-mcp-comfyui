@@ -5,7 +5,7 @@ metadata:
   dcc-mcp:
     dcc: comfyui
     layer: workflow
-    version: "0.1.1" # x-release-please-version
+    version: "0.1.2" # x-release-please-version
     tags: [comfyui, workflow, image, automation, asset-sync, 3d]
     search-hint: "ComfyUI API workflow validate submit queue status output artifact image generation Load3D 3D asset sync"
     tools: tools.yaml
