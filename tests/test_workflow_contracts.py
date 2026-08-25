@@ -17,6 +17,17 @@ CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 SHA = re.compile(r"^[0-9a-f]{40}$")
 HEAD_SOURCE_BINDING = 'test "$(git rev-parse HEAD)" = "$source_sha"'
+GH_UPLOAD_COMMAND = 'gh release upload "$TAG" dist/*.whl dist/*.tar.gz --repo "$GITHUB_REPOSITORY"'
+ARTIFACT_METADATA_COMMAND = 'artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"'
+ARTIFACT_ARCHIVE_COMMAND = 'gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$artifact_archive"'
+ARTIFACT_DIGEST_COMMAND = 'test "$(sha256sum "$artifact_archive" | cut -d\' \' -f1)" = "$expected_artifact_digest"'
+ARTIFACT_ID_COMMAND = 'test "$(jq -r \'.id // empty\' <<< "$artifact_metadata")" = "$ARTIFACT_ID"'
+ARTIFACT_METADATA_DIGEST_COMMAND = 'test "$(jq -r \'.digest // empty\' <<< "$artifact_metadata")" = "$ARTIFACT_DIGEST"'
+ARTIFACT_HEAD_COMMAND = 'test "$(jq -r \'.workflow_run.head_sha // empty\' <<< "$artifact_metadata")" = "$SOURCE_SHA"'
+ARTIFACT_URL_COMMAND = (
+    'test "$(jq -r \'.archive_download_url // empty\' <<< "$artifact_metadata")" = '
+    '"https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"'
+)
 
 PINNED_ACTIONS = {
     "googleapis/release-please-action": "45996ed1f6d02564a971a2fa1b5860e934307cf7",
@@ -58,6 +69,12 @@ def _step(job: dict, name: str) -> tuple[int, dict]:
     matches = [(index, step) for index, step in enumerate(_steps(job)) if step.get("name") == name]
     assert len(matches) == 1, f"expected exactly one structured step: {name}"
     return matches[0]
+
+
+def _run_lines(step: dict) -> list[str]:
+    run = step.get("run")
+    assert isinstance(run, str)
+    return [line.strip() for line in run.splitlines() if line.strip() and not line.lstrip().startswith("#")]
 
 
 def _assert_unique_steps(job_name: str, job: dict) -> None:
@@ -165,20 +182,33 @@ def _validate_release_contract(text: str) -> None:
         assert download["with"]["path"] == "dist"
 
     publish = jobs["publish-pypi"]
-    assert publish["permissions"] == {"contents": "read", "id-token": "write"}
+    assert publish["permissions"] == {"actions": "read", "contents": "read", "id-token": "write"}
+    assert [step.get("name") for step in _steps(publish)] == [
+        "Check out immutable source",
+        "Download immutable release artifact",
+        "Revalidate release immediately before PyPI",
+        "Publish exact artifact to PyPI",
+    ]
     verify_pypi_index, verify_pypi = _step(publish, "Revalidate release immediately before PyPI")
-    assert "rm dist/SHA256SUMS" in verify_pypi["run"]
+    assert _run_lines(verify_pypi)[-1] == "rm dist/SHA256SUMS"
     assert _steps(publish)[verify_pypi_index + 1]["uses"] == (
         "pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33"
     )
+    assert _steps(publish)[verify_pypi_index + 1]["with"]["packages-dir"] == "dist/"
 
     attach = jobs["attach-github-release"]
-    assert attach["permissions"] == {"contents": "write"}
+    assert attach["permissions"] == {"actions": "read", "contents": "write"}
+    assert [step.get("name") for step in _steps(attach)] == [
+        "Check out immutable source",
+        "Download immutable release artifact",
+        "Revalidate release immediately before GitHub upload",
+        "Attach exact release artifacts without clobber",
+    ]
     verify_gh_index, verify_gh = _step(attach, "Revalidate release immediately before GitHub upload")
+    assert _run_lines(verify_gh)[-1] == "rm dist/SHA256SUMS"
     mutation = _steps(attach)[verify_gh_index + 1]
     assert mutation["name"] == "Attach exact release artifacts without clobber"
-    assert "gh release upload" in mutation["run"]
-    assert "--clobber" not in mutation["run"]
+    assert mutation["run"] == GH_UPLOAD_COMMAND
 
     for verify in (verify_pypi, verify_gh):
         assert verify["env"]["ARTIFACT_ID"] == "${{ needs.build-release-artifact.outputs.artifact_id }}"
@@ -192,8 +222,19 @@ def _validate_release_contract(text: str) -> None:
             "ARTIFACT_DIGEST",
             "target_commitish",
             "sha256sum --check dist/SHA256SUMS",
+            'test "${#wheels[@]}" -eq 1',
+            'test "${#sdists[@]}" -eq 1',
+            'test "${#files[@]}" -eq 3',
         ):
             assert required in verify["run"]
+        lines = _run_lines(verify)
+        assert ARTIFACT_METADATA_COMMAND in lines
+        assert ARTIFACT_ID_COMMAND in lines
+        assert ARTIFACT_METADATA_DIGEST_COMMAND in lines
+        assert ARTIFACT_HEAD_COMMAND in lines
+        assert ARTIFACT_URL_COMMAND in lines
+        assert ARTIFACT_ARCHIVE_COMMAND in lines
+        assert ARTIFACT_DIGEST_COMMAND in lines
 
 
 def test_ci_uses_real_floor_and_latest_dependency_resolution() -> None:
@@ -242,6 +283,51 @@ def test_release_contract_rejects_duplicate_and_unbound_upload_mutations() -> No
         _validate_release_contract(text.replace(marker, duplicate + marker, 1))
     with pytest.raises(AssertionError):
         _validate_release_contract(text.replace(marker, unbound + marker, 1))
+
+
+def test_release_contract_rejects_indirect_clobber_and_extra_upload_commands() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    indirect_clobber = (
+        "run: |\n"
+        "          flags=(--clo bber)\n"
+        '          gh release upload "$TAG" dist/*.whl dist/*.tar.gz "${flags[@]}" '
+        '--repo "$GITHUB_REPOSITORY"'
+    )
+    extra_command = "run: |\n          " + GH_UPLOAD_COMMAND + "\n          echo tamper"
+
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace("run: " + GH_UPLOAD_COMMAND, indirect_clobber, 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace("run: " + GH_UPLOAD_COMMAND, extra_command, 1))
+
+
+def test_release_contract_rejects_post_verify_steps_and_nonfinal_sidecar_removal() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    post_verify_step = "      - name: Post-publish tamper\n        run: echo tamper\n"
+    marker = "  attach-github-release:\n"
+    gh_without_final_removal = "          true".join(text.rsplit("          rm dist/SHA256SUMS", 1))
+
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(marker, post_verify_step + marker, 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace("          rm dist/SHA256SUMS", "          true", 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(gh_without_final_removal)
+
+
+def test_release_contract_rejects_unbound_artifact_digest_checks() -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+    with pytest.raises(AssertionError):
+        _validate_release_contract(
+            text.replace(ARTIFACT_ARCHIVE_COMMAND, ARTIFACT_ARCHIVE_COMMAND.replace("$ARTIFACT_ID", "123"), 1)
+        )
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(ARTIFACT_DIGEST_COMMAND, "echo digest-not-checked", 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(ARTIFACT_ID_COMMAND, "true", 1))
+    with pytest.raises(AssertionError):
+        _validate_release_contract(text.replace(ARTIFACT_METADATA_DIGEST_COMMAND, "true", 1))
 
 
 def _git(cwd: Path, *args: str) -> str:

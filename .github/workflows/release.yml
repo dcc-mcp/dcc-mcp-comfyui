@@ -117,6 +117,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/dcc-mcp-comfyui
     permissions:
+      actions: read
       contents: read
       id-token: write
     steps:
@@ -144,6 +145,16 @@ jobs:
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
           [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]]
+          artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.id // empty' <<< "$artifact_metadata")" = "$ARTIFACT_ID"
+          test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.expired // empty' <<< "$artifact_metadata")" = "false"
+          test "$(jq -r '.workflow_run.head_sha // empty' <<< "$artifact_metadata")" = "$SOURCE_SHA"
+          test "$(jq -r '.archive_download_url // empty' <<< "$artifact_metadata")" = "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"
+          artifact_archive="$RUNNER_TEMP/release-artifact-$ARTIFACT_ID.zip"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$artifact_archive"
+          expected_artifact_digest="${ARTIFACT_DIGEST#sha256:}"
+          test "$(sha256sum "$artifact_archive" | cut -d' ' -f1)" = "$expected_artifact_digest"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
           tag_sha="$(git rev-parse "$TAG^{commit}")"
@@ -156,6 +167,13 @@ jobs:
           fi
           test "$tag_sha" = "$SOURCE_SHA"
           test "$target_sha" = "$SOURCE_SHA"
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          files=(dist/*)
+          test "${#wheels[@]}" -eq 1
+          test "${#sdists[@]}" -eq 1
+          test "${#files[@]}" -eq 3
           sha256sum --check dist/SHA256SUMS
           rm dist/SHA256SUMS
       - name: Publish exact artifact to PyPI
@@ -171,6 +189,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      actions: read
       contents: write
     steps:
       - name: Check out immutable source
@@ -197,6 +216,16 @@ jobs:
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
           [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]]
+          artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.id // empty' <<< "$artifact_metadata")" = "$ARTIFACT_ID"
+          test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.expired // empty' <<< "$artifact_metadata")" = "false"
+          test "$(jq -r '.workflow_run.head_sha // empty' <<< "$artifact_metadata")" = "$SOURCE_SHA"
+          test "$(jq -r '.archive_download_url // empty' <<< "$artifact_metadata")" = "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"
+          artifact_archive="$RUNNER_TEMP/release-artifact-$ARTIFACT_ID.zip"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$artifact_archive"
+          expected_artifact_digest="${ARTIFACT_DIGEST#sha256:}"
+          test "$(sha256sum "$artifact_archive" | cut -d' ' -f1)" = "$expected_artifact_digest"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
           tag_sha="$(git rev-parse "$TAG^{commit}")"
@@ -209,20 +238,29 @@ jobs:
           fi
           test "$tag_sha" = "$SOURCE_SHA"
           test "$target_sha" = "$SOURCE_SHA"
-          sha256sum --check dist/SHA256SUMS
-          mapfile -t files < <(find dist -maxdepth 1 -type f -printf '%f\n' | sort)
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          files=(dist/*)
+          test "${#wheels[@]}" -eq 1
+          test "${#sdists[@]}" -eq 1
           test "${#files[@]}" -eq 3
+          sha256sum --check dist/SHA256SUMS
           existing_assets="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.assets[].name')"
-          for file in "${files[@]}"; do
-            if printf '%s\n' "$existing_assets" | grep -Fqx -- "$file"; then
-              echo "release asset already exists: $file" >&2
+          release_files=("${wheels[0]}" "${sdists[0]}")
+          test "${#release_files[@]}" -eq 2
+          for file in "${release_files[@]}"; do
+            filename="$(basename "$file")"
+            if printf '%s\n' "$existing_assets" | grep -Fqx -- "$filename"; then
+              echo "release asset already exists: $filename" >&2
               exit 1
             fi
           done
+          rm dist/SHA256SUMS
       - name: Attach exact release artifacts without clobber
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_HOST: github.com
           TAG: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY"
+        run: gh release upload "$TAG" dist/*.whl dist/*.tar.gz --repo "$GITHUB_REPOSITORY"

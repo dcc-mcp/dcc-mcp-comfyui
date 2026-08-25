@@ -126,14 +126,15 @@ def check_uv_lock_consistency(root: Path) -> list[str]:
     if not all(source is None or isinstance(source, dict) for source in sources):
         return ["uv.lock package source values must be mappings"]
     editable_roots = [
-        package
-        for package in packages
-        if isinstance(package.get("source"), dict) and package["source"].get("editable") == "."
+        package for package in packages if isinstance(package.get("source"), dict) and "editable" in package["source"]
     ]
     if len(editable_roots) != 1:
-        return [f"uv.lock must contain exactly one source.editable='.' root package; found {len(editable_roots)}"]
+        return [f"uv.lock must contain exactly one source mapping with an editable key; found {len(editable_roots)}"]
 
     editable_root = editable_roots[0]
+    editable_source = editable_root["source"]
+    if editable_source.get("editable") != ".":
+        return [f"uv.lock editable root path {editable_source.get('editable')!r} != canonical '.'"]
     lock_name = editable_root.get("name")
     if lock_name != EXPECTED_ROOT_PACKAGE:
         return [f"uv.lock editable root name {lock_name!r} != fixed identity {EXPECTED_ROOT_PACKAGE!r}"]
