@@ -60,7 +60,7 @@ _UniqueKeyLoader.yaml_implicit_resolvers = {
 }
 _UniqueKeyLoader.add_implicit_resolver(
     _BOOL_TAG,
-    re.compile(r"^(?:true|false)$", re.IGNORECASE),
+    re.compile(r"^(?:true|True|TRUE|false|False|FALSE)$"),
     list("tTfF"),
 )
 
@@ -435,6 +435,54 @@ def test_release_contract_rejects_yaml_1_1_boolean_spellings(job_name: str, lega
 
     with pytest.raises(AssertionError):
         _validate_release_contract(tampered)
+
+
+@pytest.mark.parametrize("mixed_case_boolean", ["tRuE", "TrUe"])
+@pytest.mark.parametrize("job_name", ["publish-pypi", "attach-github-release"])
+def test_release_contract_rejects_non_core_mixed_case_boolean(job_name: str, mixed_case_boolean: str) -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    tampered = _replace_once_in_job(
+        text,
+        job_name,
+        "          merge-multiple: true\n",
+        f"          merge-multiple: {mixed_case_boolean}\n",
+    )
+
+    with pytest.raises(AssertionError):
+        _validate_release_contract(tampered)
+
+
+@pytest.mark.parametrize(
+    ("core_boolean", "expected"),
+    [
+        ("true", True),
+        ("True", True),
+        ("TRUE", True),
+        ("false", False),
+        ("False", False),
+        ("FALSE", False),
+    ],
+)
+@pytest.mark.parametrize("job_name", ["publish-pypi", "attach-github-release"])
+def test_release_contract_uses_yaml_1_2_core_boolean_semantics(
+    job_name: str, core_boolean: str, expected: bool
+) -> None:
+    text = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+    candidate = _replace_once_in_job(
+        text,
+        job_name,
+        "          merge-multiple: true\n",
+        f"          merge-multiple: {core_boolean}\n",
+    )
+    workflow = _load_workflow(candidate)
+    _, download = _step(workflow["jobs"][job_name], "Download immutable release artifact")
+    assert download["with"]["merge-multiple"] is expected
+
+    if expected:
+        _validate_release_contract(candidate)
+    else:
+        with pytest.raises(AssertionError):
+            _validate_release_contract(candidate)
 
 
 @pytest.mark.parametrize("job_name", ["publish-pypi", "attach-github-release"])
