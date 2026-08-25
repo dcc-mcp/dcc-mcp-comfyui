@@ -129,8 +129,34 @@ def test_second_editable_shadow_root_is_rejected(tmp_path: Path) -> None:
     )
 
     assert checker.check_uv_lock_consistency(tmp_path) == [
-        "uv.lock must contain exactly one source.editable='.' root package; found 2"
+        "uv.lock must contain exactly one source mapping with an editable key; found 2"
     ]
+
+
+def test_noncanonical_second_editable_shadow_root_is_rejected(tmp_path: Path) -> None:
+    checker = _load_checker_module()
+    _write_version_files(
+        tmp_path,
+        project_version="0.1.2",
+        lock_version="0.1.2",
+        extra_lock_package=('\n[[package]]\nname = "shadow-root"\nversion = "0.1.2"\nsource = { editable = "./" }\n'),
+    )
+
+    assert checker.check_uv_lock_consistency(tmp_path) == [
+        "uv.lock must contain exactly one source mapping with an editable key; found 2"
+    ]
+
+
+def test_noncanonical_only_editable_root_path_is_rejected(tmp_path: Path) -> None:
+    checker = _load_checker_module()
+    _write_version_files(tmp_path, project_version="0.1.2", lock_version="0.1.2")
+    lock_path = tmp_path / "uv.lock"
+    lock_path.write_text(
+        lock_path.read_text(encoding="utf-8").replace('editable = "."', 'editable = "./"'),
+        encoding="utf-8",
+    )
+
+    assert checker.check_uv_lock_consistency(tmp_path) == ["uv.lock editable root path './' != canonical '.'"]
 
 
 def test_invalid_project_version_is_rejected(tmp_path: Path) -> None:
@@ -269,7 +295,7 @@ def test_checked_in_uv_lock_matches_release_version() -> None:
     editable_roots = [
         package
         for package in lock["package"]
-        if isinstance(package.get("source"), dict) and package["source"].get("editable") == "."
+        if isinstance(package.get("source"), dict) and "editable" in package["source"]
     ]
 
     assert manifest["."] == pyproject["project"]["version"]
@@ -280,6 +306,7 @@ def test_checked_in_uv_lock_matches_release_version() -> None:
             "version": manifest["."],
         }
     ]
+    assert editable_roots[0]["source"]["editable"] == "."
 
 
 def test_core_floor_matches_runtime_docs_and_bundled_skills() -> None:
