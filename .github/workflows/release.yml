@@ -144,17 +144,16 @@ jobs:
           set -euo pipefail
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
-          [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]
           artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
           test "$(jq -r '.id // empty' <<< "$artifact_metadata")" = "$ARTIFACT_ID"
-          test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"
           test "$(jq -r '.expired // empty' <<< "$artifact_metadata")" = "false"
           test "$(jq -r '.workflow_run.head_sha // empty' <<< "$artifact_metadata")" = "$SOURCE_SHA"
           test "$(jq -r '.archive_download_url // empty' <<< "$artifact_metadata")" = "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"
           artifact_archive="$RUNNER_TEMP/release-artifact-$ARTIFACT_ID.zip"
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$artifact_archive"
-          expected_artifact_digest="${ARTIFACT_DIGEST#sha256:}"
-          test "$(sha256sum "$artifact_archive" | cut -d' ' -f1)" = "$expected_artifact_digest"
+          test "$(sha256sum "$artifact_archive" | cut -d' ' -f1)" = "$ARTIFACT_DIGEST"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
           tag_sha="$(git rev-parse "$TAG^{commit}")"
@@ -215,17 +214,16 @@ jobs:
           set -euo pipefail
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
-          [[ "$ARTIFACT_DIGEST" =~ ^(sha256:)?[0-9a-f]{64}$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^[0-9a-f]{64}$ ]]
           artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
           test "$(jq -r '.id // empty' <<< "$artifact_metadata")" = "$ARTIFACT_ID"
-          test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"
           test "$(jq -r '.expired // empty' <<< "$artifact_metadata")" = "false"
           test "$(jq -r '.workflow_run.head_sha // empty' <<< "$artifact_metadata")" = "$SOURCE_SHA"
           test "$(jq -r '.archive_download_url // empty' <<< "$artifact_metadata")" = "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"
           artifact_archive="$RUNNER_TEMP/release-artifact-$ARTIFACT_ID.zip"
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$artifact_archive"
-          expected_artifact_digest="${ARTIFACT_DIGEST#sha256:}"
-          test "$(sha256sum "$artifact_archive" | cut -d' ' -f1)" = "$expected_artifact_digest"
+          test "$(sha256sum "$artifact_archive" | cut -d' ' -f1)" = "$ARTIFACT_DIGEST"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           git fetch --force --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
           tag_sha="$(git rev-parse "$TAG^{commit}")"
