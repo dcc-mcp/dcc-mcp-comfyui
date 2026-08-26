@@ -155,9 +155,11 @@ def _validate_ci_contract(text: str) -> None:
     _, install = _step(test_job, "Install resolved adapter and Core")
     assert 'python -m pip install -e ".[dev]" "dcc-mcp-core==${{ matrix.core-version }}"' in install["run"]
     _, verify = _step(test_job, "Verify resolved dependency versions")
-    assert "python -m pip check" in verify["run"]
+    assert _run_lines(verify) == [
+        "python -m pip check",
+        "python scripts/ci/check_uv_lock.py --installed",
+    ]
     assert "matrix.core-version" in verify["env"]["EXPECTED_CORE"]
-    assert "importlib.metadata.version" in verify["run"]
 
     lint_job = jobs["lint-and-build"]
     _, skill_lint = _step(lint_job, "Validate bundled Skills")

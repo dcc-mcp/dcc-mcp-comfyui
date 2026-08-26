@@ -45,7 +45,7 @@ jobs:
           EXPECTED_CORE: ${{ matrix.core-version }}
         run: |
           python -m pip check
-          python -c "import importlib.metadata, os; assert importlib.metadata.version('dcc-mcp-core') == os.environ['EXPECTED_CORE']; assert importlib.metadata.version('dcc-mcp-comfyui') == '0.1.2'"
+          python scripts/ci/check_uv_lock.py --installed
       - name: Run tests
         run: python -m pytest
 

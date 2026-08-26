@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Validate the editable root package version recorded in ``uv.lock``."""
+"""Validate canonical release metadata and installed package versions."""
 
 from __future__ import annotations
 
+import argparse
+import importlib.metadata
 import json
 import os
 import re
@@ -148,14 +150,52 @@ def check_uv_lock_consistency(root: Path) -> list[str]:
     return []
 
 
+def check_installed_versions(root: Path, expected_core: str) -> list[str]:
+    """Return stable errors for installed packages that drift from CI inputs."""
+    errors = check_uv_lock_consistency(root)
+    if errors:
+        return errors
+    if not _valid_project_version(expected_core):
+        return [f"EXPECTED_CORE {expected_core!r} is not a valid project version"]
+
+    manifest = json.loads((root / ".release-please-manifest.json").read_text(encoding="utf-8"))
+    expected_versions = {
+        "dcc-mcp-core": expected_core,
+        EXPECTED_ROOT_PACKAGE: manifest["."],
+    }
+    for package, expected_version in expected_versions.items():
+        try:
+            installed_version = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            return [f"installed package {package!r} was not found"]
+        if installed_version != expected_version:
+            return [f"installed {package} version {installed_version!r} != expected {expected_version!r}"]
+    return []
+
+
 def main() -> None:
-    """Run the repository-root consistency check for CI."""
-    errors = check_uv_lock_consistency(Path.cwd())
+    """Run repository-root consistency and optional installed-package checks."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--installed",
+        action="store_true",
+        help="also validate installed Core and adapter versions",
+    )
+    args = parser.parse_args()
+
+    root = Path.cwd()
+    if args.installed:
+        errors = check_installed_versions(root, os.environ.get("EXPECTED_CORE", ""))
+    else:
+        errors = check_uv_lock_consistency(root)
     if errors:
         for error in errors:
             print(f"::error::{error}", file=sys.stderr)
         raise SystemExit(1)
-    print("uv.lock editable root version is consistent.")
+    if args.installed:
+        print("Installed Core and adapter versions match canonical release metadata.")
+    else:
+        print("Release metadata and uv.lock editable root version are consistent.")
 
 
 if __name__ == "__main__":

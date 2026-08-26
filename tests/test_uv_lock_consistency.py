@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +25,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_ROOT_PACKAGE = "dcc-mcp-comfyui"
 SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "check_uv_lock.py"
+CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 LOCK_SYNC_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-please-lock-sync.yml"
 VERSION_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "version-consistency.yml"
 
@@ -270,6 +276,76 @@ def test_release_workflows_regenerate_and_validate_uv_lock() -> None:
         "scripts/ci/check_uv_lock.py",
         ".github/workflows/version-consistency.yml",
     }.issubset(_workflow_pull_request_paths(version_workflow))
+
+
+def test_release_candidate_ci_assertion_uses_canonical_adapter_version(tmp_path: Path) -> None:
+    """Execute the CI assertion with the next canonical release installed."""
+    _write_version_files(tmp_path, project_version="0.1.3", lock_version="0.1.3")
+    checker_path = tmp_path / "scripts" / "ci" / "check_uv_lock.py"
+    checker_path.parent.mkdir(parents=True)
+    shutil.copy2(SCRIPT_PATH, checker_path)
+    sitecustomize_path = tmp_path / "sitecustomize.py"
+    sitecustomize_path.write_text(
+        "import importlib.metadata\n"
+        "versions = {'dcc-mcp-core': '0.20.8', 'dcc-mcp-comfyui': '0.1.3'}\n"
+        "importlib.metadata.version = versions.__getitem__\n",
+        encoding="utf-8",
+    )
+
+    ci_workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    assertion_commands = _workflow_step_commands(
+        ci_workflow,
+        job="test",
+        step_name="Verify resolved dependency versions",
+    )
+    assert assertion_commands[0] == "python -m pip check"
+    assert len(assertion_commands) == 2
+    assertion_command = assertion_commands[1]
+    command = shlex.split(assertion_command)
+    assert command[0] == "python"
+    environment = os.environ.copy()
+    environment["EXPECTED_CORE"] = "0.20.8"
+    environment["PYTHONPATH"] = os.pathsep.join(
+        [str(tmp_path), environment["PYTHONPATH"]] if environment.get("PYTHONPATH") else [str(tmp_path)]
+    )
+
+    completed = subprocess.run(
+        [sys.executable, *command[1:]],
+        cwd=tmp_path,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert assertion_command == "python scripts/ci/check_uv_lock.py --installed"
+
+    sitecustomize_path.write_text(
+        "import importlib.metadata\n"
+        "versions = {'dcc-mcp-core': '0.20.8', 'dcc-mcp-comfyui': '0.1.2'}\n"
+        "importlib.metadata.version = versions.__getitem__\n",
+        encoding="utf-8",
+    )
+    shutil.rmtree(tmp_path / "__pycache__", ignore_errors=True)
+    stale_install = subprocess.run(
+        [sys.executable, *command[1:]],
+        cwd=tmp_path,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert stale_install.returncode == 1
+    assert "installed dcc-mcp-comfyui version '0.1.2' != expected '0.1.3'" in stale_install.stderr
+
+    version_workflow = VERSION_WORKFLOW.read_text(encoding="utf-8")
+    assert "python scripts/ci/check_uv_lock.py" in _workflow_step_commands(
+        version_workflow,
+        job="version-consistency",
+        step_name="Check uv lock consistency",
+    )
+    assert ".github/workflows/ci.yml" in _workflow_pull_request_paths(version_workflow)
 
 
 def test_comment_only_lock_command_is_not_executable() -> None:
