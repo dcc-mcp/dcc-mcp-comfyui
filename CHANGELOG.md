@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.3](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.2...v0.1.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* derive CI adapter version from release metadata ([f9f7157](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/f9f7157babb9d6a25306c8d27c7b29a12c6e7a67))
+* preserve release artifact extraction ([e04a061](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/e04a06167f85a51d0a88adc860098b407d06b621))
+* reject ambiguous release yaml ([5b231f4](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/5b231f41b3b611e40a0f02630ff8c48f63eb11f6))
+* restrict release boolean spellings ([8fd1ce7](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/8fd1ce7ff798644899f68cc05d588c0accbdf8b5))
+* use yaml 1.2 release booleans ([674ecee](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/674ecee93adaf7a71e2ee443bd7f1226ab9c9858))
+
 ## [0.1.2](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.1...v0.1.2) (2026-08-25)
 
 
