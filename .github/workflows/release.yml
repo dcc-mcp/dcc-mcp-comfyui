@@ -149,7 +149,7 @@ jobs:
           artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
           test "$(jq -r '.id // empty' <<< "$artifact_metadata")" = "$ARTIFACT_ID"
           test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"
-          test "$(jq -r '.expired // empty' <<< "$artifact_metadata")" = "false"
+          jq -e 'has("expired") and (.expired | type == "boolean" and . == false)' <<< "$artifact_metadata" > /dev/null
           test "$(jq -r '.workflow_run.head_sha // empty' <<< "$artifact_metadata")" = "$SOURCE_SHA"
           test "$(jq -r '.archive_download_url // empty' <<< "$artifact_metadata")" = "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"
           artifact_archive="$RUNNER_TEMP/release-artifact-$ARTIFACT_ID.zip"
@@ -220,7 +220,7 @@ jobs:
           artifact_metadata="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
           test "$(jq -r '.id // empty' <<< "$artifact_metadata")" = "$ARTIFACT_ID"
           test "$(jq -r '.digest // empty' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"
-          test "$(jq -r '.expired // empty' <<< "$artifact_metadata")" = "false"
+          jq -e 'has("expired") and (.expired | type == "boolean" and . == false)' <<< "$artifact_metadata" > /dev/null
           test "$(jq -r '.workflow_run.head_sha // empty' <<< "$artifact_metadata")" = "$SOURCE_SHA"
           test "$(jq -r '.archive_download_url // empty' <<< "$artifact_metadata")" = "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip"
           artifact_archive="$RUNNER_TEMP/release-artifact-$ARTIFACT_ID.zip"

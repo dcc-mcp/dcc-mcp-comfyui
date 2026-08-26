@@ -26,6 +26,8 @@ ARTIFACT_ID_COMMAND = 'test "$(jq -r \'.id // empty\' <<< "$artifact_metadata")"
 ARTIFACT_METADATA_DIGEST_COMMAND = (
     'test "$(jq -r \'.digest // empty\' <<< "$artifact_metadata")" = "sha256:$ARTIFACT_DIGEST"'
 )
+ARTIFACT_EXPIRATION_FILTER = 'has("expired") and (.expired | type == "boolean" and . == false)'
+ARTIFACT_EXPIRATION_COMMAND = f"jq -e '{ARTIFACT_EXPIRATION_FILTER}' <<< \"$artifact_metadata\" > /dev/null"
 ARTIFACT_HEAD_COMMAND = 'test "$(jq -r \'.workflow_run.head_sha // empty\' <<< "$artifact_metadata")" = "$SOURCE_SHA"'
 ARTIFACT_URL_COMMAND = (
     'test "$(jq -r \'.archive_download_url // empty\' <<< "$artifact_metadata")" = '
@@ -134,6 +136,32 @@ def _validate_digest_fixture(raw_digest: str, api_digest: str, archive_digest: s
     assert re.fullmatch(r"[0-9a-f]{64}", raw_digest)
     assert api_digest == f"sha256:{raw_digest}"
     assert archive_digest == raw_digest
+
+
+def _artifact_expiration_filters(text: str) -> list[str]:
+    workflow = _load_workflow(text)
+    jobs = workflow["jobs"]
+    filters = []
+    for job_name, step_name in (
+        ("publish-pypi", "Revalidate release immediately before PyPI"),
+        ("attach-github-release", "Revalidate release immediately before GitHub upload"),
+    ):
+        _, verify = _step(jobs[job_name], step_name)
+        expiration_lines = [line for line in _run_lines(verify) if ".expired" in line]
+        assert len(expiration_lines) == 1
+        match = re.search(r"jq (?:-r|-e) '([^']+)'", expiration_lines[0])
+        assert match is not None
+        filters.append(match.group(1))
+    return filters
+
+
+def _jq_command() -> list[str]:
+    jq = shutil.which("jq")
+    if jq is not None:
+        return [jq]
+    vx = shutil.which("vx")
+    assert vx is not None, "jq or vx is required to validate release artifact metadata"
+    return [vx, "jq"]
 
 
 def _validate_ci_contract(text: str) -> None:
@@ -281,6 +309,7 @@ def _validate_release_contract(text: str) -> None:
         assert ARTIFACT_METADATA_COMMAND in lines
         assert ARTIFACT_ID_COMMAND in lines
         assert ARTIFACT_METADATA_DIGEST_COMMAND in lines
+        assert [line for line in lines if ".expired" in line] == [ARTIFACT_EXPIRATION_COMMAND]
         assert ARTIFACT_HEAD_COMMAND in lines
         assert ARTIFACT_URL_COMMAND in lines
         assert ARTIFACT_ARCHIVE_COMMAND in lines
@@ -299,6 +328,32 @@ def test_upload_artifact_and_api_digest_real_format_fixture() -> None:
     raw_digest = "28e3b433b85e7914ed9bcf832d393100d15a49b8fbe37d01438d0253c6ee0369"
 
     _validate_digest_fixture(raw_digest, f"sha256:{raw_digest}", raw_digest)
+
+
+@pytest.mark.parametrize(
+    ("metadata", "accepted"),
+    [
+        ('{"expired": false}', True),
+        ('{"expired": true}', False),
+        ("{}", False),
+        ('{"expired": null}', False),
+        ('{"expired": "false"}', False),
+        ('{"expired":', False),
+    ],
+    ids=["false", "true", "missing", "null", "string", "malformed"],
+)
+def test_release_artifact_expiration_filter_is_fail_closed(metadata: str, accepted: bool) -> None:
+    filters = _artifact_expiration_filters(RELEASE_WORKFLOW.read_text(encoding="utf-8"))
+    assert filters[0] == filters[1]
+    result = subprocess.run(
+        [*_jq_command(), "-e", filters[0]],
+        input=metadata,
+        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    assert (result.returncode == 0) is accepted
 
 
 def test_release_contract_ignores_adversarial_comment_and_decoy_text() -> None:
