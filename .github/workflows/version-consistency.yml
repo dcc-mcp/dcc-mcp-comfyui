@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - ".release-please-manifest.json"
+      - ".github/workflows/ci.yml"
       - ".github/workflows/release-please-lock-sync.yml"
       - ".github/workflows/version-consistency.yml"
       - "pyproject.toml"
