@@ -5,7 +5,7 @@ metadata:
   dcc-mcp:
     dcc: comfyui
     layer: domain
-    version: "0.1.2" # x-release-please-version
+    version: "0.1.3" # x-release-please-version
     tags: [comfyui, image, pipeline]
     search-hint: "ComfyUI upload input image download output artifact prompt ownership atomic file DCC handoff"
     tools: tools.yaml
