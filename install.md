@@ -12,6 +12,36 @@ revision sync also requires the wheel's `dcc_mcp_sync` custom node to exist
 under the target ComfyUI `custom_nodes` directory. HTTP reachability alone does
 not satisfy that contract.
 
+## Offline-host handoff and authorization
+
+Before setup, inspect the configured endpoint and known installation without
+changing state. Distinguish a missing Gateway/adapter connection from an offline
+ComfyUI service. One unreachable endpoint is not proof that ComfyUI is absent.
+If an existing installation cannot be located, ask for its absolute application
+path or propose an explicit new installation directory; use `--dcc-path` for the
+confirmed ComfyUI root.
+
+Offer a concrete plan to start/configure that installation or install ComfyUI and
+the adapter. Include the target directory/interpreter, missing dependencies,
+selected nodes/models, download sizes, hardware requirements and any restart.
+Wait for user authorization before downloads, installation, startup or config
+changes. An earlier approval covering this plan is sufficient; do not repeatedly
+ask for each step. Recipe selection alone does not authorize installation.
+If the user defers, keep generation paused and retain the selected recipe.
+
+Once authorized, the agent should complete the approved official ComfyUI setup,
+adapter and connection configuration, selected model/node installation and startup,
+then rediscover the target instance and describe its tools. Run the verification
+for the requested capability, including `prepare_asset_workflow` for recipes and
+the full `verify` contract below for Load3D sync. Complete the agreed bounded
+smoke test, report evidence and resume the original authorized asset task. Report
+remaining blockers explicitly; an installed package is not a ready host or a
+successfully generated asset.
+
+The adapter lifecycle commands do not install ComfyUI itself or model weights.
+Those remain separate setup actions that the agent can perform for the user
+within the approved plan.
+
 ## Requirements
 
 - Python 3.10 or newer.

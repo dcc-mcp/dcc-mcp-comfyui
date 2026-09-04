@@ -28,6 +28,15 @@ completion, and resolves generated images for DCC asset handoff. Use
 `comfyui-catalog` before authoring node graphs, `comfyui-queue` for operational
 recovery, and `comfyui-assets` for bounded upload/download.
 
+If the adapter or ComfyUI is offline, explain which connection failed and offer
+to start/configure an existing installation or install the missing components.
+Ask for an absolute ComfyUI path if it cannot be located. Follow the
+[Install SOP](https://github.com/dcc-mcp/dcc-mcp-comfyui/blob/main/install.md),
+show the proposed setup and wait for authorization before installation, downloads,
+service startup or configuration changes. Reuse prior authorization for the same
+scope. Once authorized, complete setup, rediscover the instance and tools, and
+verify the approved workflow; do not stop at an installation command list.
+
 ## Tools
 
 ### validate_workflow

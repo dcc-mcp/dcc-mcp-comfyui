@@ -1,0 +1,668 @@
+{
+  "date": "2026-09-05",
+  "method": "HTTP responses with representative User-Agent headers; no JavaScript execution or claim of actual crawler indexing",
+  "records": [
+    {
+      "user_agent": "GPTBot",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "GPTBot",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "ChatGPT-User",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "ChatGPT-User",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "OAI-SearchBot",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "OAI-SearchBot",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "ClaudeBot",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "ClaudeBot",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "PerplexityBot",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "PerplexityBot",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "Googlebot",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "Googlebot",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "bingbot",
+      "route": "/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/control/comfyui",
+      "redirects": [],
+      "bytes": 28738,
+      "sha256": "4e214119abf95e987abda745ab28524ae52f3e5ef441ae099b97e0a78d38d86b",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "bingbot",
+      "route": "/zh/control/comfyui",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/control/comfyui",
+      "redirects": [],
+      "bytes": 28404,
+      "sha256": "fb78b29f36213b34fef39598143f7a2ab3bbb5272ff21bae43a32206b403b28a",
+      "x_robots_tag": null,
+      "visible_comfyui": true,
+      "visible_pixal3d": false,
+      "visible_game_assets": false,
+      "metadata": [
+        {
+          "tag": "link",
+          "rel": "canonical",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "en",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "zh-CN",
+          "href": "https://dcc-mcp.github.io/zh/control/comfyui"
+        },
+        {
+          "tag": "link",
+          "rel": "alternate",
+          "hreflang": "x-default",
+          "href": "https://dcc-mcp.github.io/control/comfyui"
+        }
+      ]
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/robots.txt",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/robots.txt",
+      "redirects": [],
+      "bytes": 71,
+      "sha256": "b953960f2dc74d3cfe792b229f9df1bf03d6d8787b7b8200bbe83fe0ca95d87e",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": false,
+        "/zh/control/comfyui": false
+      },
+      "body": "User-agent: *\nAllow: /\n\nSitemap: https://dcc-mcp.github.io/sitemap.xml\n",
+      "allows": {
+        "GPTBot": true,
+        "ChatGPT-User": true,
+        "OAI-SearchBot": true,
+        "ClaudeBot": true,
+        "PerplexityBot": true,
+        "Googlebot": true,
+        "bingbot": true
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/sitemap.xml",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/sitemap.xml",
+      "redirects": [],
+      "bytes": 23419,
+      "sha256": "0b0a2d1cfe3bf8b0113ad5205208fe1cdd6e4765552aa26dcb9434e24794f729",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": true,
+        "/zh/control/comfyui": true
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/llms.txt",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/llms.txt",
+      "redirects": [],
+      "bytes": 7195,
+      "sha256": "70ed50397a8daa0392d8c086dfef1e8cc3075939f6d24fa720bf96c581690e17",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": true,
+        "/zh/control/comfyui": false
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/llms-full.txt",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/llms-full.txt",
+      "redirects": [],
+      "bytes": 14945,
+      "sha256": "be41dcc94007be89c403489bb80d646cb9f1cbd8521098115aa58a98c8f1e745",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": true,
+        "/zh/control/comfyui": false
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/zh/llms.txt",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/llms.txt",
+      "redirects": [],
+      "bytes": 7110,
+      "sha256": "be852f11efcb8a0ecc28d498f7c1da05556b1687fb42db015a790ef65bb3a676",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": false,
+        "/zh/control/comfyui": true
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/zh/llms-full.txt",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/llms-full.txt",
+      "redirects": [],
+      "bytes": 14221,
+      "sha256": "d9c6d91af371146d27271e8a11c1a78d1642375bb0848d4483b4934cab34dff4",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": false,
+        "/zh/control/comfyui": true
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/use-cases",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/use-cases",
+      "redirects": [],
+      "bytes": 47324,
+      "sha256": "df63a26c91373e40ec28dbbbc42c1c556eb1508de4cc33710df581ad0edfe96a",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": false,
+        "/zh/control/comfyui": false
+      },
+      "linked_routes": {
+        "/control/comfyui": true,
+        "/zh/control/comfyui": false
+      }
+    },
+    {
+      "user_agent": "dcc-mcp-geo-audit/1.0",
+      "route": "/zh/use-cases",
+      "status": 200,
+      "final_url": "https://dcc-mcp.github.io/zh/use-cases",
+      "redirects": [],
+      "bytes": 46571,
+      "sha256": "b9ced4148922ef11ae4320b739952d2db9e80e8ae89d7104694d661f96dba352",
+      "x_robots_tag": null,
+      "contains_routes": {
+        "/control/comfyui": false,
+        "/zh/control/comfyui": false
+      },
+      "linked_routes": {
+        "/control/comfyui": false,
+        "/zh/control/comfyui": true
+      }
+    }
+  ]
+}

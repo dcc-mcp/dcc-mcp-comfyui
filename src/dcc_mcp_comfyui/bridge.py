@@ -1,4 +1,4 @@
-"""ComfyUIBridge — REST + WebSocket client for ComfyUI.
+"""ComfyUIBridge — typed REST client for ComfyUI.
 
 ComfyUI exposes:
 - REST API at ``{base_url}/prompt``, ``/history/{id}``, ``/queue``, ``/view``, etc.
@@ -6,6 +6,8 @@ ComfyUI exposes:
 
 This bridge provides typed, bounded contracts for workflow execution, queue
 control, node/model discovery, runtime diagnostics, and artifact handoff.
+Job monitoring polls REST history; the bridge exposes a WebSocket URL helper
+but does not open a WebSocket connection or consume progress events.
 """
 
 from __future__ import annotations
@@ -201,7 +203,7 @@ def _queue_ids(items: Any) -> list[str]:
 
 
 class ComfyUIBridge:
-    """Typed REST + optional WebSocket client for ComfyUI."""
+    """Typed REST client with polling for job status."""
 
     def __init__(
         self,
