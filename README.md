@@ -16,6 +16,7 @@ _Real local capture: Blender sphere -> half-mesh revision -> content-addressed p
 
 ## Capabilities
 
+- Nine curated local game-asset recipes cover SD1.5, SDXL, FLUX.2 Klein 4B, Z-Image Turbo, Qwen-Image 2512, BiRefNet cutouts, Hunyuan3D shapes, TRELLIS.2 PBR and Pixal3D PBR. Agents compare hardware and setup requirements, confirm the user's choice, preflight live nodes/models, and submit a bounded PNG/GLB workflow.
 - Workflow validation checks API-format structure, graph references, live node classes, and required inputs before queue submission.
 - Catalog discovery exposes bounded features, models, embeddings, node summaries, exact node contracts, and redacted device/runtime status.
 - Queue operations inspect IDs without workflow bodies, target one exact prompt for cancellation or history deletion, and verify the resulting state; running cancellation fails closed instead of falling back to ComfyUI's legacy global interrupt.
@@ -70,7 +71,7 @@ dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188
 
 ## Skills
 
-The wheel includes four validated Skills and 18 typed tools:
+The wheel includes five validated Skills and 21 typed tools:
 
 | Skill | Tools | Boundary |
 |---|---:|---|
@@ -78,6 +79,15 @@ The wheel includes four validated Skills and 18 typed tools:
 | `comfyui-catalog` | 7 | Features, model folders, models, embeddings, node summaries/contracts, and redacted runtime status |
 | `comfyui-queue` | 4 | Redacted queue inspection, exact cancellation/history deletion, and memory reclamation |
 | `comfyui-assets` | 2 | Bounded image upload and atomic prompt-owned artifact download |
+| `comfyui-game-assets` | 3 | Offline recipe discovery, live dependency preflight, and one-shot generation submission |
+
+See the [game-asset selection and setup guide](src/dcc_mcp_comfyui/skills/comfyui-game-assets/references/selection-guide.md).
+Recipe data includes pinned upstream workflow sources, model locations and license
+notes. No weights are bundled or automatically installed. Hardware tiers are
+relative guidance; preflight does not establish GPU memory fit or output quality.
+Recent native 3D/background-removal nodes may require a newer ComfyUI than the
+asset-sync CI baseline. Raster UI art and generated meshes still need game-engine
+acceptance, including alpha edges, text, topology, collision and LODs.
 
 The public surface does not expose arbitrary Python, raw process arguments,
 local ComfyUI install paths, bulk queue deletion, or unbounded catalog dumps.
