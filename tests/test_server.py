@@ -220,6 +220,7 @@ def test_all_bundled_skills_validate_without_issues():
     skills_root = Path(__file__).parents[1] / "src" / "dcc_mcp_comfyui" / "skills"
     expected_tools = {
         "comfyui-assets": 2,
+        "comfyui-game-assets": 3,
         "comfyui-catalog": 7,
         "comfyui-queue": 4,
         "comfyui-workflow": 5,
@@ -239,7 +240,7 @@ def test_all_bundled_skills_validate_without_issues():
         actual_tools[skill_name] = len(manifest["tools"])
 
     assert actual_tools == expected_tools
-    assert sum(actual_tools.values()) == 18
+    assert sum(actual_tools.values()) == 21
     assert set(skill_versions.values()) == {version("dcc-mcp-comfyui")}, skill_versions
 
 

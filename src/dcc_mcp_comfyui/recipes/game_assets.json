@@ -1,0 +1,2614 @@
+[
+  {
+    "id": "sd15",
+    "name": "Stable Diffusion 1.5 economical",
+    "kind": "image",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "CreativeML OpenRAIL-M",
+    "use_cases": [
+      "small item icons",
+      "512px prototypes",
+      "lower-memory local images"
+    ],
+    "notes": [
+      "512x512, one image at a time is the economical starting point.",
+      "Less prompt fidelity and detail than modern image models; not suitable for rendered UI text.",
+      "Weights are a community mirror of the deprecated Runway repository; verify its provenance before installation."
+    ],
+    "source": "https://github.com/Comfy-Org/ComfyUI/blob/acb2a019b24861d89721a23862c059e3a6ece660/nodes.py",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "checkpoint": {
+        "node": "1",
+        "input": "ckpt_name",
+        "filename": "v1-5-pruned-emaonly.safetensors",
+        "directory": "checkpoints",
+        "source": "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5",
+        "download_url": "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5/resolve/451f4fe16113bff5a5d2269ed5ad43b0592e9a14/v1-5-pruned-emaonly.safetensors",
+        "license": "CreativeML OpenRAIL-M",
+        "source_revision": "451f4fe16113bff5a5d2269ed5ad43b0592e9a14",
+        "size_bytes": 4265146304,
+        "sha256": "6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa",
+        "source_license": "creativeml-openrail-m"
+      }
+    },
+    "bindings": {
+      "width": [
+        [
+          "5",
+          "width"
+        ]
+      ],
+      "height": [
+        [
+          "5",
+          "height"
+        ]
+      ],
+      "batch_size": [
+        [
+          "5",
+          "batch_size"
+        ]
+      ],
+      "seed": [
+        [
+          "7",
+          "seed"
+        ]
+      ],
+      "prompt": [
+        [
+          "3",
+          "text"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "9",
+          "filename_prefix"
+        ]
+      ],
+      "negative_prompt": [
+        [
+          "4",
+          "text"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "CheckpointLoaderSimple",
+        "inputs": {
+          "ckpt_name": "v1-5-pruned-emaonly.safetensors"
+        }
+      },
+      "3": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "1",
+            1
+          ],
+          "text": ""
+        }
+      },
+      "4": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "1",
+            1
+          ],
+          "text": "blurry, low quality"
+        }
+      },
+      "5": {
+        "class_type": "EmptyLatentImage",
+        "inputs": {
+          "width": 512,
+          "height": 512,
+          "batch_size": 1
+        }
+      },
+      "7": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "positive": [
+            "3",
+            0
+          ],
+          "negative": [
+            "4",
+            0
+          ],
+          "latent_image": [
+            "5",
+            0
+          ],
+          "seed": 0,
+          "steps": 20,
+          "cfg": 7.0,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "7",
+            0
+          ],
+          "vae": [
+            "1",
+            2
+          ]
+        }
+      },
+      "9": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "8",
+            0
+          ],
+          "filename_prefix": "game-assets/sdxl"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "economical",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "z-image-turbo",
+    "name": "Z-Image Turbo",
+    "kind": "image",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "Apache-2.0",
+    "use_cases": [
+      "concept art",
+      "icons",
+      "rapid variations"
+    ],
+    "notes": [
+      "RGB PNG; run birefnet-cutout separately for transparency.",
+      "Rendered text needs review; use engine text for interactive UI.",
+      "Fixed upstream sampling defaults; weights and VRAM must be provisioned locally."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/image_z_image_turbo.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "diffusion": {
+        "node": "1",
+        "input": "unet_name",
+        "filename": "z_image_turbo_bf16.safetensors",
+        "directory": "diffusion_models",
+        "source": "https://huggingface.co/Comfy-Org/z_image_turbo",
+        "download_url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/08d04455279082882deaabc8d0d09fc914c071e1/split_files/diffusion_models/z_image_turbo_bf16.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "08d04455279082882deaabc8d0d09fc914c071e1",
+        "size_bytes": 12309866400,
+        "sha256": "2407613050b809ffdff18a4ac99af83ea6b95443ecebdf80e064a79c825574a6",
+        "source_license": "apache-2.0"
+      },
+      "text_encoder": {
+        "node": "2",
+        "input": "clip_name",
+        "filename": "qwen_3_4b.safetensors",
+        "directory": "text_encoders",
+        "source": "https://huggingface.co/Comfy-Org/z_image_turbo",
+        "download_url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/08d04455279082882deaabc8d0d09fc914c071e1/split_files/text_encoders/qwen_3_4b.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "08d04455279082882deaabc8d0d09fc914c071e1",
+        "size_bytes": 8044982048,
+        "sha256": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+        "source_license": "apache-2.0"
+      },
+      "vae": {
+        "node": "10",
+        "input": "vae_name",
+        "filename": "ae.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/z_image_turbo",
+        "download_url": "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/08d04455279082882deaabc8d0d09fc914c071e1/split_files/vae/ae.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "08d04455279082882deaabc8d0d09fc914c071e1",
+        "size_bytes": 335304388,
+        "sha256": "afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+        "source_license": "apache-2.0"
+      }
+    },
+    "bindings": {
+      "width": [
+        [
+          "5",
+          "width"
+        ]
+      ],
+      "height": [
+        [
+          "5",
+          "height"
+        ]
+      ],
+      "batch_size": [
+        [
+          "5",
+          "batch_size"
+        ]
+      ],
+      "seed": [
+        [
+          "7",
+          "seed"
+        ]
+      ],
+      "prompt": [
+        [
+          "3",
+          "text"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "9",
+          "filename_prefix"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "z_image_turbo_bf16.safetensors",
+          "weight_dtype": "default"
+        }
+      },
+      "2": {
+        "class_type": "CLIPLoader",
+        "inputs": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "lumina2",
+          "device": "default"
+        }
+      },
+      "3": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "2",
+            0
+          ],
+          "text": ""
+        }
+      },
+      "4": {
+        "class_type": "ConditioningZeroOut",
+        "inputs": {
+          "conditioning": [
+            "3",
+            0
+          ]
+        }
+      },
+      "5": {
+        "class_type": "EmptySD3LatentImage",
+        "inputs": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        }
+      },
+      "6": {
+        "class_type": "ModelSamplingAuraFlow",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "shift": 3.0
+        }
+      },
+      "7": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "6",
+            0
+          ],
+          "positive": [
+            "3",
+            0
+          ],
+          "negative": [
+            "4",
+            0
+          ],
+          "latent_image": [
+            "5",
+            0
+          ],
+          "seed": 0,
+          "steps": 8,
+          "cfg": 1.0,
+          "sampler_name": "res_multistep",
+          "scheduler": "simple",
+          "denoise": 1.0
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "7",
+            0
+          ],
+          "vae": [
+            "10",
+            0
+          ]
+        }
+      },
+      "9": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "8",
+            0
+          ],
+          "filename_prefix": "game-assets/image"
+        }
+      },
+      "10": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "ae.safetensors"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "balanced",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "qwen-image-2512",
+    "name": "Qwen-Image 2512",
+    "kind": "image",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "Apache-2.0",
+    "use_cases": [
+      "UI illustrations",
+      "Chinese and English signage",
+      "detailed props"
+    ],
+    "notes": [
+      "RGB PNG; run birefnet-cutout separately for transparency.",
+      "Rendered text needs review; use engine text for interactive UI.",
+      "Fixed upstream sampling defaults; weights and VRAM must be provisioned locally."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/image_qwen_Image_2512.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "diffusion": {
+        "node": "1",
+        "input": "unet_name",
+        "filename": "qwen_image_2512_fp8_e4m3fn.safetensors",
+        "directory": "diffusion_models",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI",
+        "download_url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/7beb7b647f04469fbe64ba8adc2bb0d7e5e9f73f/split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "7beb7b647f04469fbe64ba8adc2bb0d7e5e9f73f",
+        "size_bytes": 20430679144,
+        "sha256": "5dc80554d5d83390046a2f4a94ece06afb7700bf7b0aaf8bde9769793875876b",
+        "source_license": "apache-2.0"
+      },
+      "text_encoder": {
+        "node": "2",
+        "input": "clip_name",
+        "filename": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "directory": "text_encoders",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI",
+        "download_url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/7beb7b647f04469fbe64ba8adc2bb0d7e5e9f73f/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "7beb7b647f04469fbe64ba8adc2bb0d7e5e9f73f",
+        "size_bytes": 9384670680,
+        "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4",
+        "source_license": "apache-2.0"
+      },
+      "vae": {
+        "node": "10",
+        "input": "vae_name",
+        "filename": "qwen_image_vae.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI",
+        "download_url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/7beb7b647f04469fbe64ba8adc2bb0d7e5e9f73f/split_files/vae/qwen_image_vae.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "7beb7b647f04469fbe64ba8adc2bb0d7e5e9f73f",
+        "size_bytes": 253806246,
+        "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+        "source_license": "apache-2.0"
+      }
+    },
+    "bindings": {
+      "width": [
+        [
+          "5",
+          "width"
+        ]
+      ],
+      "height": [
+        [
+          "5",
+          "height"
+        ]
+      ],
+      "batch_size": [
+        [
+          "5",
+          "batch_size"
+        ]
+      ],
+      "seed": [
+        [
+          "7",
+          "seed"
+        ]
+      ],
+      "prompt": [
+        [
+          "3",
+          "text"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "9",
+          "filename_prefix"
+        ]
+      ],
+      "negative_prompt": [
+        [
+          "4",
+          "text"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
+          "weight_dtype": "default"
+        }
+      },
+      "2": {
+        "class_type": "CLIPLoader",
+        "inputs": {
+          "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+          "type": "qwen_image",
+          "device": "default"
+        }
+      },
+      "3": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "2",
+            0
+          ],
+          "text": ""
+        }
+      },
+      "4": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "2",
+            0
+          ],
+          "text": "blurry, low quality"
+        }
+      },
+      "5": {
+        "class_type": "EmptySD3LatentImage",
+        "inputs": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        }
+      },
+      "6": {
+        "class_type": "ModelSamplingAuraFlow",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "shift": 3.1
+        }
+      },
+      "7": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "6",
+            0
+          ],
+          "positive": [
+            "3",
+            0
+          ],
+          "negative": [
+            "4",
+            0
+          ],
+          "latent_image": [
+            "5",
+            0
+          ],
+          "seed": 0,
+          "steps": 50,
+          "cfg": 4.0,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1.0
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "7",
+            0
+          ],
+          "vae": [
+            "10",
+            0
+          ]
+        }
+      },
+      "9": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "8",
+            0
+          ],
+          "filename_prefix": "game-assets/image"
+        }
+      },
+      "10": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "qwen_image_vae.safetensors"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "high",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "flux2-klein-4b",
+    "name": "FLUX.2 Klein 4B distilled",
+    "kind": "image",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "Apache-2.0 (4B only)",
+    "use_cases": [
+      "UI art",
+      "item icons",
+      "fast concept variations"
+    ],
+    "notes": [
+      "Four-step distilled 4B; do not substitute 9B/base weights into this recipe.",
+      "RGB PNG, not a functional UI layout.",
+      "BFL reports about 13 GB VRAM; quantization/offloading changes requirements."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/image_flux2_klein_text_to_image.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "diffusion": {
+        "node": "1",
+        "input": "unet_name",
+        "filename": "flux-2-klein-4b.safetensors",
+        "directory": "diffusion_models",
+        "source": "https://huggingface.co/Comfy-Org/flux2-klein",
+        "download_url": "https://huggingface.co/Comfy-Org/flux2-klein/resolve/5f526678002e43af5551dadb73ce2e8c91b43afe/split_files/diffusion_models/flux-2-klein-4b.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "5f526678002e43af5551dadb73ce2e8c91b43afe",
+        "size_bytes": 7751105712,
+        "sha256": "ec3d4e733a771f61c052fb4856c48b336c55eaf2c65487c2a1faeb9bbda7a343",
+        "source_license": "apache-2.0"
+      },
+      "text_encoder": {
+        "node": "2",
+        "input": "clip_name",
+        "filename": "qwen_3_4b.safetensors",
+        "directory": "text_encoders",
+        "source": "https://huggingface.co/Comfy-Org/flux2-klein",
+        "download_url": "https://huggingface.co/Comfy-Org/flux2-klein/resolve/5f526678002e43af5551dadb73ce2e8c91b43afe/split_files/text_encoders/qwen_3_4b.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "5f526678002e43af5551dadb73ce2e8c91b43afe",
+        "size_bytes": 8044982048,
+        "sha256": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+        "source_license": "apache-2.0"
+      },
+      "vae": {
+        "node": "10",
+        "input": "vae_name",
+        "filename": "flux2-vae.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev",
+        "download_url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/ab9055628ea245000e610f2aa2c96f4746093546/split_files/vae/flux2-vae.safetensors",
+        "license": "Apache-2.0",
+        "source_revision": "ab9055628ea245000e610f2aa2c96f4746093546",
+        "size_bytes": 336213556,
+        "sha256": "d64f3a68e1cc4f9f4e29b6e0da38a0204fe9a49f2d4053f0ec1fa1ca02f9c4b5",
+        "source_license": "other"
+      }
+    },
+    "bindings": {
+      "width": [
+        [
+          "5",
+          "width"
+        ],
+        [
+          "13",
+          "width"
+        ]
+      ],
+      "height": [
+        [
+          "5",
+          "height"
+        ],
+        [
+          "13",
+          "height"
+        ]
+      ],
+      "batch_size": [
+        [
+          "5",
+          "batch_size"
+        ]
+      ],
+      "seed": [
+        [
+          "11",
+          "noise_seed"
+        ]
+      ],
+      "prompt": [
+        [
+          "3",
+          "text"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "9",
+          "filename_prefix"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "flux-2-klein-4b.safetensors",
+          "weight_dtype": "default"
+        }
+      },
+      "2": {
+        "class_type": "CLIPLoader",
+        "inputs": {
+          "clip_name": "qwen_3_4b.safetensors",
+          "type": "flux2",
+          "device": "default"
+        }
+      },
+      "3": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "2",
+            0
+          ],
+          "text": ""
+        }
+      },
+      "4": {
+        "class_type": "ConditioningZeroOut",
+        "inputs": {
+          "conditioning": [
+            "3",
+            0
+          ]
+        }
+      },
+      "5": {
+        "class_type": "EmptyFlux2LatentImage",
+        "inputs": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        }
+      },
+      "6": {
+        "class_type": "CFGGuider",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "positive": [
+            "3",
+            0
+          ],
+          "negative": [
+            "4",
+            0
+          ],
+          "cfg": 1.0
+        }
+      },
+      "7": {
+        "class_type": "SamplerCustomAdvanced",
+        "inputs": {
+          "noise": [
+            "11",
+            0
+          ],
+          "guider": [
+            "6",
+            0
+          ],
+          "sampler": [
+            "12",
+            0
+          ],
+          "sigmas": [
+            "13",
+            0
+          ],
+          "latent_image": [
+            "5",
+            0
+          ]
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "7",
+            0
+          ],
+          "vae": [
+            "10",
+            0
+          ]
+        }
+      },
+      "9": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "8",
+            0
+          ],
+          "filename_prefix": "game-assets/image"
+        }
+      },
+      "10": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "flux2-vae.safetensors"
+        }
+      },
+      "11": {
+        "class_type": "RandomNoise",
+        "inputs": {
+          "noise_seed": 0
+        }
+      },
+      "12": {
+        "class_type": "KSamplerSelect",
+        "inputs": {
+          "sampler_name": "euler"
+        }
+      },
+      "13": {
+        "class_type": "Flux2Scheduler",
+        "inputs": {
+          "steps": 4,
+          "width": 1024,
+          "height": 1024
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "balanced",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "sdxl",
+    "name": "Stable Diffusion XL 1.0",
+    "kind": "image",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "CreativeML Open RAIL++-M",
+    "use_cases": [
+      "stylized game art",
+      "icons",
+      "existing SDXL installations"
+    ],
+    "notes": [
+      "Any replacement checkpoint has its own architecture, license and quality.",
+      "This recipe does not add ControlNet, LoRAs, seamless tiling or animation consistency."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/image_sdxl_simple.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "checkpoint": {
+        "node": "1",
+        "input": "ckpt_name",
+        "filename": "sd_xl_base_1.0.safetensors",
+        "directory": "checkpoints",
+        "source": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+        "download_url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/462165984030d82259a11f4367a4eed129e94a7b/sd_xl_base_1.0.safetensors",
+        "license": "CreativeML Open RAIL++-M",
+        "source_revision": "462165984030d82259a11f4367a4eed129e94a7b",
+        "size_bytes": 6938078334,
+        "sha256": "31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b",
+        "source_license": "openrail++"
+      }
+    },
+    "bindings": {
+      "width": [
+        [
+          "5",
+          "width"
+        ]
+      ],
+      "height": [
+        [
+          "5",
+          "height"
+        ]
+      ],
+      "batch_size": [
+        [
+          "5",
+          "batch_size"
+        ]
+      ],
+      "seed": [
+        [
+          "7",
+          "seed"
+        ]
+      ],
+      "prompt": [
+        [
+          "3",
+          "text"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "9",
+          "filename_prefix"
+        ]
+      ],
+      "negative_prompt": [
+        [
+          "4",
+          "text"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "CheckpointLoaderSimple",
+        "inputs": {
+          "ckpt_name": "sd_xl_base_1.0.safetensors"
+        }
+      },
+      "3": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "1",
+            1
+          ],
+          "text": ""
+        }
+      },
+      "4": {
+        "class_type": "CLIPTextEncode",
+        "inputs": {
+          "clip": [
+            "1",
+            1
+          ],
+          "text": "blurry, low quality"
+        }
+      },
+      "5": {
+        "class_type": "EmptyLatentImage",
+        "inputs": {
+          "width": 1024,
+          "height": 1024,
+          "batch_size": 1
+        }
+      },
+      "7": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "positive": [
+            "3",
+            0
+          ],
+          "negative": [
+            "4",
+            0
+          ],
+          "latent_image": [
+            "5",
+            0
+          ],
+          "seed": 0,
+          "steps": 30,
+          "cfg": 7.0,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "8": {
+        "class_type": "VAEDecode",
+        "inputs": {
+          "samples": [
+            "7",
+            0
+          ],
+          "vae": [
+            "1",
+            2
+          ]
+        }
+      },
+      "9": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "8",
+            0
+          ],
+          "filename_prefix": "game-assets/sdxl"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "balanced",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "hunyuan3d-2",
+    "name": "Hunyuan3D 2 shape",
+    "kind": "mesh",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "Tencent Hunyuan3D 2.0 Community License; territory and use conditions apply",
+    "use_cases": [
+      "single-image prop geometry"
+    ],
+    "notes": [
+      "Untextured GLB only; this is not the 2.1 PBR pipeline.",
+      "Use an isolated centered subject image; no text-to-3D input.",
+      "Retopology, UVs, collision, LODs and engine scale need downstream work."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/3d_hunyuan3d_image_to_model.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "checkpoint": {
+        "node": "2",
+        "input": "ckpt_name",
+        "filename": "hunyuan3d-dit-v2_fp16.safetensors",
+        "directory": "checkpoints",
+        "source": "https://huggingface.co/Comfy-Org/Hunyuan3D_repackaged",
+        "download_url": "https://huggingface.co/Comfy-Org/hunyuan3D_2.0_repackaged/resolve/0b8dcc0d19cd33a6e0f7b776294e099880b08b15/split_files/hunyuan3d-dit-v2_fp16.safetensors",
+        "license": "Tencent Hunyuan Community",
+        "source_revision": "0b8dcc0d19cd33a6e0f7b776294e099880b08b15",
+        "size_bytes": 4928151562,
+        "sha256": "360bc281fc956d4acac0c3d36d5ec0ebf8cdddbf4b8892e894d12419388d479b",
+        "source_license": "other"
+      }
+    },
+    "bindings": {
+      "image": [
+        [
+          "1",
+          "image"
+        ]
+      ],
+      "seed": [
+        [
+          "7",
+          "seed"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "10",
+          "filename_prefix"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": ""
+        }
+      },
+      "2": {
+        "class_type": "ImageOnlyCheckpointLoader",
+        "inputs": {
+          "ckpt_name": "hunyuan3d-dit-v2_fp16.safetensors"
+        }
+      },
+      "3": {
+        "class_type": "CLIPVisionEncode",
+        "inputs": {
+          "clip_vision": [
+            "2",
+            1
+          ],
+          "image": [
+            "1",
+            0
+          ],
+          "crop": "none"
+        }
+      },
+      "4": {
+        "class_type": "Hunyuan3Dv2Conditioning",
+        "inputs": {
+          "clip_vision_output": [
+            "3",
+            0
+          ]
+        }
+      },
+      "5": {
+        "class_type": "EmptyLatentHunyuan3Dv2",
+        "inputs": {
+          "resolution": 3072,
+          "batch_size": 1
+        }
+      },
+      "6": {
+        "class_type": "ModelSamplingAuraFlow",
+        "inputs": {
+          "model": [
+            "2",
+            0
+          ],
+          "shift": 1.0
+        }
+      },
+      "7": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "6",
+            0
+          ],
+          "positive": [
+            "4",
+            0
+          ],
+          "negative": [
+            "4",
+            1
+          ],
+          "latent_image": [
+            "5",
+            0
+          ],
+          "seed": 0,
+          "steps": 20,
+          "cfg": 8.0,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "8": {
+        "class_type": "VAEDecodeHunyuan3D",
+        "inputs": {
+          "samples": [
+            "7",
+            0
+          ],
+          "vae": [
+            "2",
+            2
+          ],
+          "num_chunks": 8000,
+          "octree_resolution": 256
+        }
+      },
+      "9": {
+        "class_type": "VoxelToMesh",
+        "inputs": {
+          "voxel": [
+            "8",
+            0
+          ],
+          "algorithm": "surface net",
+          "threshold": 0.6
+        }
+      },
+      "10": {
+        "class_type": "SaveGLB",
+        "inputs": {
+          "mesh": [
+            "9",
+            0
+          ],
+          "filename_prefix": "game-assets/mesh"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "balanced",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "birefnet-cutout",
+    "name": "BiRefNet transparent cutout",
+    "kind": "cutout",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "MIT",
+    "use_cases": [
+      "transparent item icons",
+      "sprite cutouts",
+      "3D reference preparation"
+    ],
+    "notes": [
+      "Native BiRefNet nodes require a recent ComfyUI.",
+      "Inverts foreground mask before JoinImageWithAlpha to preserve the subject.",
+      "Check alpha edges at actual game display size."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/3d_pixal3d_trellis2_image_to_model.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "background_removal": {
+        "node": "2",
+        "input": "bg_removal_name",
+        "filename": "birefnet.safetensors",
+        "directory": "background_removal",
+        "source": "https://huggingface.co/Comfy-Org/BiRefNet",
+        "download_url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/5a1bd8ae750548f8cd42e3c8afa854fd3eba0fb1/background_removal/birefnet.safetensors",
+        "license": "MIT",
+        "source_revision": "5a1bd8ae750548f8cd42e3c8afa854fd3eba0fb1",
+        "size_bytes": 444473596,
+        "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154",
+        "source_license": "mit"
+      }
+    },
+    "bindings": {
+      "image": [
+        [
+          "1",
+          "image"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "6",
+          "filename_prefix"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": ""
+        }
+      },
+      "2": {
+        "class_type": "LoadBackgroundRemovalModel",
+        "inputs": {
+          "bg_removal_name": "birefnet.safetensors"
+        }
+      },
+      "3": {
+        "class_type": "RemoveBackground",
+        "inputs": {
+          "bg_removal_model": [
+            "2",
+            0
+          ],
+          "image": [
+            "1",
+            0
+          ]
+        }
+      },
+      "4": {
+        "class_type": "InvertMask",
+        "inputs": {
+          "mask": [
+            "3",
+            0
+          ]
+        }
+      },
+      "5": {
+        "class_type": "JoinImageWithAlpha",
+        "inputs": {
+          "image": [
+            "1",
+            0
+          ],
+          "alpha": [
+            "4",
+            0
+          ]
+        }
+      },
+      "6": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "5",
+            0
+          ],
+          "filename_prefix": "game-assets/cutout"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "economical",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "trellis2-pbr",
+    "name": "TRELLIS.2 native PBR prop",
+    "kind": "mesh",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "MIT for TRELLIS.2; vision encoder has separate DINOv3 terms",
+    "use_cases": [
+      "textured game props",
+      "PBR GLB"
+    ],
+    "notes": [
+      "Recent native ComfyUI nodes required; not the third-party TRELLIS2 wrapper.",
+      "1024 cascade, mesh simplification and UV/PBR baking; no rigging, LODs or collision.",
+      "Target faces is a simplification request, not a guaranteed mesh count.",
+      "Microsoft reference implementation requires a 24 GB NVIDIA GPU; native/offloaded execution must be measured.",
+      "PBR maps include base color, metallic and roughness; no baked normal/AO in this recipe."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/3d_pixal3d_trellis2_image_to_model.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "background_removal": {
+        "node": "2",
+        "input": "bg_removal_name",
+        "filename": "birefnet.safetensors",
+        "directory": "background_removal",
+        "source": "https://huggingface.co/Comfy-Org/BiRefNet",
+        "download_url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/5a1bd8ae750548f8cd42e3c8afa854fd3eba0fb1/background_removal/birefnet.safetensors",
+        "license": "MIT",
+        "source_revision": "5a1bd8ae750548f8cd42e3c8afa854fd3eba0fb1",
+        "size_bytes": 444473596,
+        "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154",
+        "source_license": "mit"
+      },
+      "vision": {
+        "node": "5",
+        "input": "clip_name",
+        "filename": "dino_v3_vit_l.safetensors",
+        "directory": "clip_vision",
+        "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+        "download_url": "https://huggingface.co/Comfy-Org/TRELLIS.2/resolve/463441b1c32829ee876e4f297dcfff533cb357a7/clip_vision/dino_v3_vit_l.safetensors",
+        "license": "DINOv3 license; see upstream model card",
+        "source_revision": "463441b1c32829ee876e4f297dcfff533cb357a7",
+        "size_bytes": 1212559776,
+        "sha256": "5cb785e458de7c460579082418af81f5c62380c181599344bdc60898c63468ee",
+        "source_license": "mit"
+      },
+      "diffusion": {
+        "node": "7",
+        "input": "unet_name",
+        "filename": "trellis_2_int8_convrot.safetensors",
+        "directory": "diffusion_models",
+        "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+        "download_url": "https://huggingface.co/Comfy-Org/TRELLIS.2/resolve/463441b1c32829ee876e4f297dcfff533cb357a7/diffusion_models/trellis_2_int8_convrot.safetensors",
+        "license": "MIT",
+        "source_revision": "463441b1c32829ee876e4f297dcfff533cb357a7",
+        "size_bytes": 5253048192,
+        "sha256": "d01952ad137213f6a868f86b6b877026276f84af5eec23069217475a0bad3a31",
+        "source_license": "mit"
+      },
+      "shape_vae": {
+        "node": "13",
+        "input": "vae_name",
+        "filename": "trellis_2_shape_vae_bf16.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+        "download_url": "https://huggingface.co/Comfy-Org/TRELLIS.2/resolve/463441b1c32829ee876e4f297dcfff533cb357a7/vae/trellis_2_shape_vae_bf16.safetensors",
+        "license": "MIT",
+        "source_revision": "463441b1c32829ee876e4f297dcfff533cb357a7",
+        "size_bytes": 1095844024,
+        "sha256": "de0cb4949a76c59ee5c091a995a69bcc8c51d5aeda939f0c641a50d2a72341f4",
+        "source_license": "mit"
+      },
+      "texture_vae": {
+        "node": "24",
+        "input": "vae_name",
+        "filename": "trellis_2_texture_vae_bf16.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+        "download_url": "https://huggingface.co/Comfy-Org/TRELLIS.2/resolve/463441b1c32829ee876e4f297dcfff533cb357a7/vae/trellis_2_texture_vae_bf16.safetensors",
+        "license": "MIT",
+        "source_revision": "463441b1c32829ee876e4f297dcfff533cb357a7",
+        "size_bytes": 948461364,
+        "sha256": "714e5ebf094a610e12a8e3b5175c18a62f37f6ea4218acb6073644456b73ab0e",
+        "source_license": "mit"
+      }
+    },
+    "bindings": {
+      "image": [
+        [
+          "1",
+          "image"
+        ]
+      ],
+      "seed": [
+        [
+          "12",
+          "seed"
+        ],
+        [
+          "18",
+          "seed"
+        ],
+        [
+          "20",
+          "seed"
+        ],
+        [
+          "23",
+          "seed"
+        ]
+      ],
+      "target_faces": [
+        [
+          "26",
+          "target_face_count"
+        ]
+      ],
+      "texture_size": [
+        [
+          "28",
+          "resolution"
+        ],
+        [
+          "29",
+          "texture_size"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "31",
+          "filename_prefix"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": ""
+        }
+      },
+      "2": {
+        "class_type": "LoadBackgroundRemovalModel",
+        "inputs": {
+          "bg_removal_name": "birefnet.safetensors"
+        }
+      },
+      "3": {
+        "class_type": "RemoveBackground",
+        "inputs": {
+          "bg_removal_model": [
+            "2",
+            0
+          ],
+          "image": [
+            "1",
+            0
+          ]
+        }
+      },
+      "4": {
+        "class_type": "ImageCropToMask",
+        "inputs": {
+          "images": [
+            "1",
+            0
+          ],
+          "masks": [
+            "3",
+            0
+          ],
+          "width": 1024,
+          "height": 1024,
+          "pad_factor": 1.0,
+          "grow_mask": 0,
+          "background": "#000000"
+        }
+      },
+      "5": {
+        "class_type": "CLIPVisionLoader",
+        "inputs": {
+          "clip_name": "dino_v3_vit_l.safetensors"
+        }
+      },
+      "6": {
+        "class_type": "Trellis2Conditioning",
+        "inputs": {
+          "clip_vision_model": [
+            "5",
+            0
+          ],
+          "image": [
+            "4",
+            0
+          ]
+        }
+      },
+      "7": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "trellis_2_int8_convrot.safetensors",
+          "weight_dtype": "default"
+        }
+      },
+      "8": {
+        "class_type": "CFGOverride",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "cfg": 1.0,
+          "start_percent": 0.667,
+          "end_percent": 1.0
+        }
+      },
+      "9": {
+        "class_type": "RescaleCFG",
+        "inputs": {
+          "model": [
+            "8",
+            0
+          ],
+          "multiplier": 0.7
+        }
+      },
+      "10": {
+        "class_type": "ModelSamplingSD3",
+        "inputs": {
+          "model": [
+            "9",
+            0
+          ],
+          "shift": 5.0
+        }
+      },
+      "11": {
+        "class_type": "EmptyTrellis2LatentStructure",
+        "inputs": {
+          "batch_size": 1
+        }
+      },
+      "12": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "10",
+            0
+          ],
+          "positive": [
+            "6",
+            0
+          ],
+          "negative": [
+            "6",
+            1
+          ],
+          "latent_image": [
+            "11",
+            0
+          ],
+          "seed": 0,
+          "steps": 12,
+          "cfg": 7.5,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "13": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "trellis_2_shape_vae_bf16.safetensors"
+        }
+      },
+      "14": {
+        "class_type": "VaeDecodeStructureTrellis2",
+        "inputs": {
+          "samples": [
+            "12",
+            0
+          ],
+          "vae": [
+            "13",
+            0
+          ],
+          "resolution": "32"
+        }
+      },
+      "15": {
+        "class_type": "Trellis2ShapeStage",
+        "inputs": {
+          "positive": [
+            "6",
+            0
+          ],
+          "negative": [
+            "6",
+            1
+          ],
+          "voxel": [
+            "14",
+            0
+          ]
+        }
+      },
+      "16": {
+        "class_type": "CFGOverride",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "cfg": 1.0,
+          "start_percent": 0.769,
+          "end_percent": 1.0
+        }
+      },
+      "17": {
+        "class_type": "RescaleCFG",
+        "inputs": {
+          "model": [
+            "16",
+            0
+          ],
+          "multiplier": 0.5
+        }
+      },
+      "18": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "17",
+            0
+          ],
+          "positive": [
+            "15",
+            0
+          ],
+          "negative": [
+            "15",
+            1
+          ],
+          "latent_image": [
+            "15",
+            2
+          ],
+          "seed": 0,
+          "steps": 20,
+          "cfg": 7.5,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "19": {
+        "class_type": "Trellis2UpsampleStage",
+        "inputs": {
+          "positive": [
+            "15",
+            0
+          ],
+          "negative": [
+            "15",
+            1
+          ],
+          "shape_latent": [
+            "18",
+            0
+          ],
+          "vae": [
+            "13",
+            0
+          ],
+          "target_resolution": 1024
+        }
+      },
+      "20": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "17",
+            0
+          ],
+          "positive": [
+            "19",
+            0
+          ],
+          "negative": [
+            "19",
+            1
+          ],
+          "latent_image": [
+            "19",
+            2
+          ],
+          "seed": 0,
+          "steps": 12,
+          "cfg": 7.5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1.0
+        }
+      },
+      "21": {
+        "class_type": "VaeDecodeShapeTrellis",
+        "inputs": {
+          "samples": [
+            "20",
+            0
+          ],
+          "vae": [
+            "13",
+            0
+          ]
+        }
+      },
+      "22": {
+        "class_type": "Trellis2TextureStage",
+        "inputs": {
+          "positive": [
+            "19",
+            0
+          ],
+          "negative": [
+            "19",
+            1
+          ],
+          "shape_latent": [
+            "20",
+            0
+          ]
+        }
+      },
+      "23": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "positive": [
+            "22",
+            0
+          ],
+          "negative": [
+            "22",
+            1
+          ],
+          "latent_image": [
+            "22",
+            2
+          ],
+          "seed": 0,
+          "steps": 12,
+          "cfg": 1.0,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "24": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "trellis_2_texture_vae_bf16.safetensors"
+        }
+      },
+      "25": {
+        "class_type": "VaeDecodeTextureTrellis",
+        "inputs": {
+          "samples": [
+            "23",
+            0
+          ],
+          "vae": [
+            "24",
+            0
+          ],
+          "shape_subdivides": [
+            "21",
+            1
+          ]
+        }
+      },
+      "26": {
+        "class_type": "DecimateMesh",
+        "inputs": {
+          "mesh": [
+            "21",
+            0
+          ],
+          "target_face_count": 30000,
+          "placement_mode": "midpoint"
+        }
+      },
+      "27": {
+        "class_type": "MeshSmoothNormals",
+        "inputs": {
+          "mesh": [
+            "26",
+            0
+          ],
+          "crease_angle": 180.0
+        }
+      },
+      "28": {
+        "class_type": "UnwrapMesh",
+        "inputs": {
+          "mesh": [
+            "27",
+            0
+          ],
+          "segmenter": "pec",
+          "resolution": 1024,
+          "padding": 1,
+          "weld_distance": 0.0002
+        }
+      },
+      "29": {
+        "class_type": "BakeTextureFromVoxel",
+        "inputs": {
+          "mesh": [
+            "28",
+            0
+          ],
+          "voxel_colors": [
+            "25",
+            0
+          ],
+          "texture_size": 1024,
+          "reference_mesh": [
+            "21",
+            0
+          ]
+        }
+      },
+      "30": {
+        "class_type": "ApplyTextureToMesh",
+        "inputs": {
+          "mesh": [
+            "28",
+            0
+          ],
+          "base_color": [
+            "29",
+            0
+          ],
+          "metallic": [
+            "29",
+            1
+          ],
+          "roughness": [
+            "29",
+            2
+          ]
+        }
+      },
+      "31": {
+        "class_type": "SaveGLB",
+        "inputs": {
+          "mesh": [
+            "30",
+            0
+          ],
+          "filename_prefix": "game-assets/trellis2"
+        }
+      }
+    },
+    "selection_required": true,
+    "hardware": {
+      "tier": "high",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  },
+  {
+    "id": "pixal3d-pbr",
+    "name": "Pixal3D native PBR prop",
+    "kind": "mesh",
+    "revision": 1,
+    "execution": "local",
+    "api_fee": false,
+    "license": "MIT for Pixal3D; DINOv3 and dependencies retain their own terms",
+    "use_cases": [
+      "image-faithful textured props",
+      "pixel-aligned PBR GLB"
+    ],
+    "notes": [
+      "Recent native Pixal3D + MoGe nodes required; 1024 cascade with INT8 weights.",
+      "MoGe estimates reference-camera FoV; not a fixed guessed camera.",
+      "Upstream standalone --low_vram uses on-demand loading and defaults to 1024; this ComfyUI recipe does not invoke that CLI flag.",
+      "Actual peak VRAM depends on native ComfyUI offloading and mesh complexity; no unverified minimum VRAM claim.",
+      "Simplification and UV/PBR baking included; no rigging, LODs, collision, normal or AO baking."
+    ],
+    "source": "https://github.com/Comfy-Org/workflow_templates/blob/785127914ff0f5bddb38c5fbe20c96912e564d9b/templates/3d_pixal3d_trellis2_image_to_model.json",
+    "comfyui_source_ref": "acb2a019b24861d89721a23862c059e3a6ece660",
+    "models": {
+      "background_removal": {
+        "node": "2",
+        "input": "bg_removal_name",
+        "filename": "birefnet.safetensors",
+        "directory": "background_removal",
+        "source": "https://huggingface.co/Comfy-Org/BiRefNet",
+        "download_url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/5a1bd8ae750548f8cd42e3c8afa854fd3eba0fb1/background_removal/birefnet.safetensors",
+        "license": "MIT",
+        "source_revision": "5a1bd8ae750548f8cd42e3c8afa854fd3eba0fb1",
+        "size_bytes": 444473596,
+        "sha256": "9ab37426bf4de0567af6b5d21b16151357149139362e6e8992021b8ce356a154",
+        "source_license": "mit"
+      },
+      "vision": {
+        "node": "5",
+        "input": "clip_name",
+        "filename": "dino_v3_L_naf_fp32.safetensors",
+        "directory": "clip_vision",
+        "source": "https://huggingface.co/Comfy-Org/Pixal3D",
+        "download_url": "https://huggingface.co/Comfy-Org/Pixal3D/resolve/b35ffffa61fa02a86c377d94b755d9fe65d185d9/clip_vision/dino_v3_L_naf_fp32.safetensors",
+        "license": "DINOv3 license; see upstream model card",
+        "source_revision": "b35ffffa61fa02a86c377d94b755d9fe65d185d9",
+        "size_bytes": 1215214176,
+        "sha256": "4ad2ec4e0879a5b5b04cd97325cc37da954a7b6edca5170b86510f17f2b2290f",
+        "source_license": "mit"
+      },
+      "diffusion": {
+        "node": "7",
+        "input": "unet_name",
+        "filename": "pixal3d_int8_convrot.safetensors",
+        "directory": "diffusion_models",
+        "source": "https://huggingface.co/Comfy-Org/Pixal3D",
+        "download_url": "https://huggingface.co/Comfy-Org/Pixal3D/resolve/b35ffffa61fa02a86c377d94b755d9fe65d185d9/diffusion_models/pixal3d_int8_convrot.safetensors",
+        "license": "MIT",
+        "source_revision": "b35ffffa61fa02a86c377d94b755d9fe65d185d9",
+        "size_bytes": 5584555824,
+        "sha256": "4621eac3b715484f79303c7152af641fe0b2b14f4d0e3d394fd6922d00f955ec",
+        "source_license": "mit"
+      },
+      "shape_vae": {
+        "node": "13",
+        "input": "vae_name",
+        "filename": "trellis_2_shape_vae_bf16.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+        "download_url": "https://huggingface.co/Comfy-Org/TRELLIS.2/resolve/463441b1c32829ee876e4f297dcfff533cb357a7/vae/trellis_2_shape_vae_bf16.safetensors",
+        "license": "MIT",
+        "source_revision": "463441b1c32829ee876e4f297dcfff533cb357a7",
+        "size_bytes": 1095844024,
+        "sha256": "de0cb4949a76c59ee5c091a995a69bcc8c51d5aeda939f0c641a50d2a72341f4",
+        "source_license": "mit"
+      },
+      "texture_vae": {
+        "node": "24",
+        "input": "vae_name",
+        "filename": "trellis_2_texture_vae_bf16.safetensors",
+        "directory": "vae",
+        "source": "https://huggingface.co/Comfy-Org/TRELLIS.2",
+        "download_url": "https://huggingface.co/Comfy-Org/TRELLIS.2/resolve/463441b1c32829ee876e4f297dcfff533cb357a7/vae/trellis_2_texture_vae_bf16.safetensors",
+        "license": "MIT",
+        "source_revision": "463441b1c32829ee876e4f297dcfff533cb357a7",
+        "size_bytes": 948461364,
+        "sha256": "714e5ebf094a610e12a8e3b5175c18a62f37f6ea4218acb6073644456b73ab0e",
+        "source_license": "mit"
+      },
+      "geometry": {
+        "node": "32",
+        "input": "model_name",
+        "filename": "moge_2_vitl_normal_fp16.safetensors",
+        "directory": "geometry_estimation",
+        "source": "https://huggingface.co/Comfy-Org/MoGe",
+        "download_url": "https://huggingface.co/Comfy-Org/MoGe/resolve/14cbe5bcaaab2fcabaccac085b24a82af2669b14/geometry_estimation/moge_2_vitl_normal_fp16.safetensors",
+        "license": "See MoGe model card and dependencies",
+        "source_revision": "14cbe5bcaaab2fcabaccac085b24a82af2669b14",
+        "size_bytes": 661859924,
+        "sha256": "cb1a692d03235671e959e81360d7b4d9f44aefadb1f852d6ca6aa17799d5e31f",
+        "source_license": "mit"
+      }
+    },
+    "bindings": {
+      "image": [
+        [
+          "1",
+          "image"
+        ]
+      ],
+      "seed": [
+        [
+          "12",
+          "seed"
+        ],
+        [
+          "18",
+          "seed"
+        ],
+        [
+          "20",
+          "seed"
+        ],
+        [
+          "23",
+          "seed"
+        ]
+      ],
+      "target_faces": [
+        [
+          "26",
+          "target_face_count"
+        ]
+      ],
+      "texture_size": [
+        [
+          "28",
+          "resolution"
+        ],
+        [
+          "29",
+          "texture_size"
+        ]
+      ],
+      "filename_prefix": [
+        [
+          "31",
+          "filename_prefix"
+        ]
+      ]
+    },
+    "workflow": {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": ""
+        }
+      },
+      "2": {
+        "class_type": "LoadBackgroundRemovalModel",
+        "inputs": {
+          "bg_removal_name": "birefnet.safetensors"
+        }
+      },
+      "3": {
+        "class_type": "RemoveBackground",
+        "inputs": {
+          "bg_removal_model": [
+            "2",
+            0
+          ],
+          "image": [
+            "1",
+            0
+          ]
+        }
+      },
+      "4": {
+        "class_type": "ImageCropToMask",
+        "inputs": {
+          "images": [
+            "1",
+            0
+          ],
+          "masks": [
+            "3",
+            0
+          ],
+          "width": 1024,
+          "height": 1024,
+          "pad_factor": 1.1,
+          "grow_mask": 0,
+          "background": "#000000"
+        }
+      },
+      "5": {
+        "class_type": "CLIPVisionLoader",
+        "inputs": {
+          "clip_name": "dino_v3_L_naf_fp32.safetensors"
+        }
+      },
+      "6": {
+        "class_type": "Pixal3DConditioning",
+        "inputs": {
+          "clip_vision_model": [
+            "5",
+            0
+          ],
+          "image": [
+            "4",
+            0
+          ],
+          "camera_angle_x": [
+            "34",
+            0
+          ]
+        }
+      },
+      "7": {
+        "class_type": "UNETLoader",
+        "inputs": {
+          "unet_name": "pixal3d_int8_convrot.safetensors",
+          "weight_dtype": "default"
+        }
+      },
+      "8": {
+        "class_type": "CFGOverride",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "cfg": 1.0,
+          "start_percent": 0.667,
+          "end_percent": 1.0
+        }
+      },
+      "9": {
+        "class_type": "RescaleCFG",
+        "inputs": {
+          "model": [
+            "8",
+            0
+          ],
+          "multiplier": 0.7
+        }
+      },
+      "10": {
+        "class_type": "ModelSamplingSD3",
+        "inputs": {
+          "model": [
+            "9",
+            0
+          ],
+          "shift": 5.0
+        }
+      },
+      "11": {
+        "class_type": "EmptyTrellis2LatentStructure",
+        "inputs": {
+          "batch_size": 1
+        }
+      },
+      "12": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "10",
+            0
+          ],
+          "positive": [
+            "6",
+            0
+          ],
+          "negative": [
+            "6",
+            1
+          ],
+          "latent_image": [
+            "11",
+            0
+          ],
+          "seed": 0,
+          "steps": 12,
+          "cfg": 7.5,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "13": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "trellis_2_shape_vae_bf16.safetensors"
+        }
+      },
+      "14": {
+        "class_type": "VaeDecodeStructureTrellis2",
+        "inputs": {
+          "samples": [
+            "12",
+            0
+          ],
+          "vae": [
+            "13",
+            0
+          ],
+          "resolution": "32"
+        }
+      },
+      "15": {
+        "class_type": "Trellis2ShapeStage",
+        "inputs": {
+          "positive": [
+            "6",
+            0
+          ],
+          "negative": [
+            "6",
+            1
+          ],
+          "voxel": [
+            "14",
+            0
+          ]
+        }
+      },
+      "16": {
+        "class_type": "CFGOverride",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "cfg": 1.0,
+          "start_percent": 0.769,
+          "end_percent": 1.0
+        }
+      },
+      "17": {
+        "class_type": "RescaleCFG",
+        "inputs": {
+          "model": [
+            "16",
+            0
+          ],
+          "multiplier": 0.5
+        }
+      },
+      "18": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "17",
+            0
+          ],
+          "positive": [
+            "15",
+            0
+          ],
+          "negative": [
+            "15",
+            1
+          ],
+          "latent_image": [
+            "15",
+            2
+          ],
+          "seed": 0,
+          "steps": 20,
+          "cfg": 7.5,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "19": {
+        "class_type": "Trellis2UpsampleStage",
+        "inputs": {
+          "positive": [
+            "15",
+            0
+          ],
+          "negative": [
+            "15",
+            1
+          ],
+          "shape_latent": [
+            "18",
+            0
+          ],
+          "vae": [
+            "13",
+            0
+          ],
+          "target_resolution": 1024
+        }
+      },
+      "20": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "17",
+            0
+          ],
+          "positive": [
+            "19",
+            0
+          ],
+          "negative": [
+            "19",
+            1
+          ],
+          "latent_image": [
+            "19",
+            2
+          ],
+          "seed": 0,
+          "steps": 12,
+          "cfg": 7.5,
+          "sampler_name": "euler",
+          "scheduler": "simple",
+          "denoise": 1.0
+        }
+      },
+      "21": {
+        "class_type": "VaeDecodeShapeTrellis",
+        "inputs": {
+          "samples": [
+            "20",
+            0
+          ],
+          "vae": [
+            "13",
+            0
+          ]
+        }
+      },
+      "22": {
+        "class_type": "Trellis2TextureStage",
+        "inputs": {
+          "positive": [
+            "19",
+            0
+          ],
+          "negative": [
+            "19",
+            1
+          ],
+          "shape_latent": [
+            "20",
+            0
+          ]
+        }
+      },
+      "23": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "7",
+            0
+          ],
+          "positive": [
+            "22",
+            0
+          ],
+          "negative": [
+            "22",
+            1
+          ],
+          "latent_image": [
+            "22",
+            2
+          ],
+          "seed": 0,
+          "steps": 12,
+          "cfg": 1.0,
+          "sampler_name": "euler",
+          "scheduler": "normal",
+          "denoise": 1.0
+        }
+      },
+      "24": {
+        "class_type": "VAELoader",
+        "inputs": {
+          "vae_name": "trellis_2_texture_vae_bf16.safetensors"
+        }
+      },
+      "25": {
+        "class_type": "VaeDecodeTextureTrellis",
+        "inputs": {
+          "samples": [
+            "23",
+            0
+          ],
+          "vae": [
+            "24",
+            0
+          ],
+          "shape_subdivides": [
+            "21",
+            1
+          ]
+        }
+      },
+      "26": {
+        "class_type": "DecimateMesh",
+        "inputs": {
+          "mesh": [
+            "21",
+            0
+          ],
+          "target_face_count": 30000,
+          "placement_mode": "midpoint"
+        }
+      },
+      "27": {
+        "class_type": "MeshSmoothNormals",
+        "inputs": {
+          "mesh": [
+            "26",
+            0
+          ],
+          "crease_angle": 180.0
+        }
+      },
+      "28": {
+        "class_type": "UnwrapMesh",
+        "inputs": {
+          "mesh": [
+            "27",
+            0
+          ],
+          "segmenter": "pec",
+          "resolution": 1024,
+          "padding": 1,
+          "weld_distance": 0.0002
+        }
+      },
+      "29": {
+        "class_type": "BakeTextureFromVoxel",
+        "inputs": {
+          "mesh": [
+            "28",
+            0
+          ],
+          "voxel_colors": [
+            "25",
+            0
+          ],
+          "texture_size": 1024,
+          "reference_mesh": [
+            "21",
+            0
+          ]
+        }
+      },
+      "30": {
+        "class_type": "ApplyTextureToMesh",
+        "inputs": {
+          "mesh": [
+            "28",
+            0
+          ],
+          "base_color": [
+            "29",
+            0
+          ],
+          "metallic": [
+            "29",
+            1
+          ],
+          "roughness": [
+            "29",
+            2
+          ]
+        }
+      },
+      "31": {
+        "class_type": "SaveGLB",
+        "inputs": {
+          "mesh": [
+            "30",
+            0
+          ],
+          "filename_prefix": "game-assets/trellis2"
+        }
+      },
+      "32": {
+        "class_type": "LoadMoGeModel",
+        "inputs": {
+          "model_name": "moge_2_vitl_normal_fp16.safetensors"
+        }
+      },
+      "33": {
+        "class_type": "MoGeInference",
+        "inputs": {
+          "moge_model": [
+            "32",
+            0
+          ],
+          "image": [
+            "4",
+            0
+          ],
+          "resolution_level": 9,
+          "fov_x_degrees": 0.0,
+          "batch_size": 1,
+          "force_projection": true,
+          "apply_mask": true
+        }
+      },
+      "34": {
+        "class_type": "MoGeGeometryToFOV",
+        "inputs": {
+          "moge_geometry": [
+            "33",
+            0
+          ],
+          "axis": "horizontal",
+          "unit": "degrees"
+        }
+      }
+    },
+    "project_source": "https://github.com/TencentARC/Pixal3D",
+    "selection_required": true,
+    "hardware": {
+      "tier": "high",
+      "measured_vram_gb": null,
+      "guidance": "Start with one output. Check free GPU memory and model disk sizes; tier is a relative recommendation, not a measured guarantee."
+    },
+    "setup": [
+      "Confirm the selected recipe and output goal with the user.",
+      "Inspect comfyui-catalog get_runtime_status for GPU and version; ask for hardware if unavailable.",
+      "Download the listed weights only after the user chooses the plan; retain model license terms.",
+      "Place files in the listed models/<directory> folders and refresh ComfyUI model discovery.",
+      "For image inputs, use comfyui-assets upload_image and pass its input-relative name.",
+      "Run prepare_asset_workflow; resolve blockers before generate_asset.",
+      "Poll the returned prompt_id, then download prompt-owned artifacts and review them in the target engine."
+    ]
+  }
+]

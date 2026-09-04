@@ -1,0 +1,229 @@
+tools:
+- name: list_asset_recipes
+  description: Compare local game-asset recipes, hardware tiers, model sources and
+    setup steps before asking the user to choose.
+  source_file: scripts/list_asset_recipes.py
+  execution: sync
+  job_strategy: monolithic
+  affinity: any
+  enforce_thread_affinity: true
+  timeout_hint_secs: 120
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      kind:
+        type: string
+        enum:
+        - all
+        - image
+        - cutout
+        - mesh
+        default: all
+  output_schema:
+    type: object
+    required:
+    - success
+    - message
+    - context
+    properties:
+      success:
+        type: boolean
+      message:
+        type: string
+      context:
+        type: object
+        required:
+        - recipes
+        properties:
+          recipes:
+            type: array
+        additionalProperties: true
+  annotations:
+    read_only_hint: true
+    destructive_hint: false
+    idempotent_hint: true
+    open_world_hint: false
+  tags:
+  - comfyui
+  - game
+  - asset
+  call_examples:
+  - arguments:
+      kind: mesh
+    note: Confirm the user choice before generate_asset.
+- name: prepare_asset_workflow
+  description: Build a chosen recipe and check live node contracts and model names
+    without queue submission.
+  source_file: scripts/prepare_asset_workflow.py
+  execution: sync
+  job_strategy: monolithic
+  affinity: any
+  enforce_thread_affinity: true
+  timeout_hint_secs: 120
+  input_schema: &id001
+    type: object
+    required:
+    - recipe_id
+    additionalProperties: false
+    properties:
+      recipe_id:
+        type: string
+        minLength: 1
+        maxLength: 64
+      parameters:
+        type: object
+        additionalProperties: false
+        description: Only parameters declared by the chosen recipe are accepted. Omitted
+          values use recipe defaults.
+        properties:
+          prompt:
+            type: string
+            maxLength: 8000
+          negative_prompt:
+            type: string
+            maxLength: 8000
+          image:
+            type: string
+            minLength: 1
+            maxLength: 240
+            description: Exact input-relative name returned by upload_image; no URL
+              or absolute path.
+          width:
+            type: integer
+            minimum: 256
+            maximum: 2048
+            multipleOf: 16
+          height:
+            type: integer
+            minimum: 256
+            maximum: 2048
+            multipleOf: 16
+          batch_size:
+            type: integer
+            minimum: 1
+            maximum: 4
+          seed:
+            type: integer
+            minimum: 0
+            maximum: 9007199254740991
+          filename_prefix:
+            type: string
+            minLength: 1
+            maxLength: 240
+          target_faces:
+            type: integer
+            minimum: 1000
+            maximum: 200000
+          texture_size:
+            type: integer
+            enum:
+            - 512
+            - 1024
+            - 2048
+      models:
+        type: object
+        maxProperties: 8
+        additionalProperties:
+          type: string
+          minLength: 1
+          maxLength: 240
+        description: Exact installed filename per declared model slot. Architecture
+          and license must match; no automatic fallback.
+  output_schema:
+    type: object
+    required:
+    - success
+    - message
+    - context
+    properties:
+      success:
+        type: boolean
+      message:
+        type: string
+      context:
+        type: object
+        required:
+        - ready
+        - blockers
+        - workflow
+        - recipe
+        - provenance
+        properties:
+          ready:
+            type: boolean
+          blockers:
+            type: array
+          workflow:
+            type: object
+          recipe:
+            type: object
+          provenance:
+            type: object
+        additionalProperties: true
+  annotations:
+    read_only_hint: true
+    destructive_hint: false
+    idempotent_hint: true
+    open_world_hint: true
+  tags:
+  - comfyui
+  - game
+  - asset
+  call_examples:
+  - arguments:
+      recipe_id: sd15
+      parameters:
+        prompt: Isometric wooden treasure chest, isolated object, painted game icon
+        seed: 42
+    note: Confirm the user choice before generate_asset.
+- name: generate_asset
+  description: After user selection, preflight a local recipe and submit once; return
+    prompt_id for existing status, cancel and download tools.
+  source_file: scripts/generate_asset.py
+  execution: sync
+  job_strategy: monolithic
+  affinity: any
+  enforce_thread_affinity: true
+  timeout_hint_secs: 120
+  input_schema: *id001
+  output_schema:
+    type: object
+    required:
+    - success
+    - message
+    - context
+    properties:
+      success:
+        type: boolean
+      message:
+        type: string
+      context:
+        type: object
+        required:
+        - submitted
+        - prompt_id
+        properties:
+          submitted:
+            type: boolean
+          prompt_id:
+            type:
+            - string
+            - 'null'
+        additionalProperties: true
+  annotations:
+    read_only_hint: false
+    destructive_hint: false
+    idempotent_hint: false
+    open_world_hint: true
+  tags:
+  - comfyui
+  - game
+  - asset
+  call_examples:
+  - arguments:
+      recipe_id: sd15
+      parameters:
+        prompt: Isometric wooden treasure chest, isolated object, painted game icon
+        seed: 42
+    note: Confirm the user choice before generate_asset.

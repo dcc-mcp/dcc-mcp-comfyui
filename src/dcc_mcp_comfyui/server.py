@@ -41,6 +41,7 @@ _MINIMAL_SKILLS = (
     "comfyui-catalog",
     "comfyui-queue",
     "comfyui-assets",
+    "comfyui-game-assets",
 )
 
 
