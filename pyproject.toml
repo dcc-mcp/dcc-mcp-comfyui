@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "dcc-mcp-comfyui"
 version = "0.1.4"
-description = "ComfyUI adapter for the DCC Model Context Protocol (MCP) ecosystem — bridges MCP tools to ComfyUI via REST + WebSocket API"
+description = "ComfyUI MCP adapter for local game images, transparent PNG assets, and GLB models through typed REST workflows"
 authors = [{ name = "Long Hao", email = "hal.long@outlook.com" }]
 readme = "README.md"
 license = { text = "MIT" }
@@ -40,6 +40,7 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/dcc-mcp/dcc-mcp-comfyui"
 Repository = "https://github.com/dcc-mcp/dcc-mcp-comfyui"
+Documentation = "https://github.com/dcc-mcp/dcc-mcp-comfyui#can-comfyui-mcp-generate-free-game-assets-locally"
 
 [project.scripts]
 dcc-mcp-comfyui = "dcc_mcp_comfyui.cli:main"

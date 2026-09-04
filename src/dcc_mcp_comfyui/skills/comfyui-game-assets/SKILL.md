@@ -10,7 +10,7 @@ metadata:
     search-hint: "free local game assets UI icons sprites transparent PNG PBR GLB 3D Pixal3D TRELLIS Hunyuan SDXL low VRAM 免费 游戏 素材 图片 模型 本地 显存"
     tools: tools.yaml
     depends: [comfyui-workflow, comfyui-assets, comfyui-catalog, comfyui-queue]
-    skill-reference-docs: [references/selection-guide.md]
+    skill-reference-docs: [references/selection-guide.en.md, references/selection-guide.md]
 ---
 
 # Local game assets
@@ -20,9 +20,35 @@ and returns model sources, licenses, download sizes, hardware guidance, supporte
 parameters and setup steps. Runtime: Python 3.10+, `dcc-mcp-core>=0.20.8,<1.0.0`.
 Package and CI validation do not establish readiness of a live ComfyUI host.
 
+## When ComfyUI is offline or missing
+
+First distinguish an unavailable Gateway/adapter from an unreachable ComfyUI
+endpoint. A failed connection alone does not prove ComfyUI is not installed.
+Explain the observed state and offer to start/configure an existing installation
+or install ComfyUI and the adapter. If the installation cannot be located, ask
+for its absolute path or propose an installation directory. Show the proposed
+changes, selected models, download sizes and hardware requirements.
+
+**Wait for the user's authorization before installing, downloading, starting
+services or changing configuration.** Earlier authorization covering that scope
+counts; do not ask again. While waiting, keep generation paused and use the
+offline recipe catalog to help the user choose. A recipe choice alone is not
+authorization to install its dependencies. If the user declines or defers, retain
+the choice and explain how to resume.
+
+After authorization, follow the [adapter Install SOP](https://github.com/dcc-mcp/dcc-mcp-comfyui/blob/main/install.md)
+and complete the approved setup: ComfyUI/runtime dependencies, adapter connection,
+selected nodes/models and startup. Rediscover the target instance and tools,
+rerun recipe preflight and perform the approved bounded verification. Report
+what is configured, the verification evidence and any remaining blockers. Do
+not stop at supplying commands or treat installation as successful generation.
+
+## Select, generate and deliver
+
 1. Establish the desired asset, style, output format and available GPU/VRAM.
    Use `comfyui-catalog` runtime diagnostics when connected. Read
-   [selection-guide.md](references/selection-guide.md) for tradeoffs and prompts.
+   [English](references/selection-guide.en.md) or
+   [中文](references/selection-guide.md) for tradeoffs and prompts.
 2. Present two or three suitable options with quality, memory, license and setup
    differences. **Ask the user which scheme to use before downloading weights
    or submitting generation.** A specific choice already made in this conversation

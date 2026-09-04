@@ -1,7 +1,7 @@
 """ComfyUI adapter for DCC MCP Core.
 
 Provides MCP server bridging AI agents to ComfyUI workflow execution
-via ComfyUI's REST + WebSocket API.
+via ComfyUI's REST API, with polling for job status.
 """
 
 from dcc_mcp_comfyui.__version__ import __version__
