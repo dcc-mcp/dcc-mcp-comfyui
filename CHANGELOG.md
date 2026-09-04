@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.5](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.4...v0.1.5) (2026-09-04)
+
+
+### Features
+
+* add guided local game asset recipes ([b59d797](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/b59d79762d620f7f0926b6f0fec357ad1b174cb1))
+
+
+### Bug Fixes
+
+* verify quantized image roundtrips ([94ccac8](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/94ccac8265257e74ef8c964be61fcc2bce33d3cd))
+
+
+### Documentation
+
+* clarify local game asset setup and authorization ([7792d05](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/7792d05317b5f1a465c125ddf9f22434a1dcf77e))
+
 ## [0.1.4](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.3...v0.1.4) (2026-08-26)
 
 
