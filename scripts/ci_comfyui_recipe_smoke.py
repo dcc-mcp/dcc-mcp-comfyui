@@ -48,7 +48,11 @@ def main() -> None:
         destination = root / "result.png"
         bridge.download_artifact(job["prompt_id"], artifact["filename"], destination, subfolder=artifact["subfolder"])
         with Image.open(destination) as image:
-            assert image.convert("RGB").getpixel((0, 0)) == (220, 185, 150)
+            assert image.size == (32, 32)
+            # ComfyUI saves float32 tensors by truncating to uint8. Inversion
+            # can land just below an integer, yielding a one-level difference.
+            for pixel in image.convert("RGB").getdata():
+                assert all(abs(actual - expected) <= 1 for actual, expected in zip(pixel, (220, 185, 150))), pixel
         print("Real ComfyUI upload, queue, status and artifact roundtrip passed (no AI weights).")
 
 

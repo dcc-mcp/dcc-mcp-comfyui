@@ -160,7 +160,7 @@
             "8",
             0
           ],
-          "filename_prefix": "game-assets/sdxl"
+          "filename_prefix": "game-assets/sd15"
         }
       }
     },
@@ -2555,7 +2555,7 @@
             "30",
             0
           ],
-          "filename_prefix": "game-assets/trellis2"
+          "filename_prefix": "game-assets/pixal3d"
         }
       },
       "32": {
