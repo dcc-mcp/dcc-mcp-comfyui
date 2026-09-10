@@ -20,6 +20,35 @@ running host, submits one job and retrieves its output for review.
 
 _Real local capture: Blender sphere -> half-mesh revision -> content-addressed publish -> click-to-latest ComfyUI `Load3D` canvas preview. The reproducible single-node workflow is in [`docs/showcase/comfyui-load3d-preview.json`](docs/showcase/comfyui-load3d-preview.json)._
 
+<!-- dcc-mcp-agent-quickstart:start -->
+## Use ComfyUI with AI agents
+
+Install the official DCC-MCP Agent Skill. Codex users can use the native plugin
+marketplace:
+
+```powershell
+codex plugin marketplace add dcc-mcp/dcc-mcp-agent-plugins
+codex plugin add dcc-mcp@dcc-mcp
+```
+
+For Claude Code, CodeBuddy, Cursor, Gemini CLI, and other supported agents, use
+the [official installation guide](https://github.com/dcc-mcp/dcc-mcp-agent-plugins#install). Start ComfyUI,
+enable this adapter, and verify that the running instance is registered:
+
+```powershell
+dcc-mcp-cli list
+```
+
+Then ask your agent:
+
+```text
+Use dcc-mcp to inspect the current ComfyUI workflow and queue status.
+```
+
+The list must include `dcc_type=comfyui`. If it does not, follow the
+[connection troubleshooting guide](https://github.com/dcc-mcp/dcc-mcp-agent-plugins#adapter-connection-troubleshooting).
+<!-- dcc-mcp-agent-quickstart:end -->
+
 ## Capabilities
 
 - Nine curated local game-asset recipes cover SD1.5, SDXL, FLUX.2 Klein 4B, Z-Image Turbo, Qwen-Image 2512, BiRefNet cutouts, Hunyuan3D shapes, TRELLIS.2 PBR and Pixal3D PBR. Agents compare hardware and setup requirements, confirm the user's choice, preflight live nodes/models, and submit a bounded PNG/GLB workflow.
