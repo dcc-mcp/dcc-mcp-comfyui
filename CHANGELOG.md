@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.5](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.4...v0.1.5) (2026-09-10)
+
+
+### Features
+
+* add guided local game asset recipes ([b59d797](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/b59d79762d620f7f0926b6f0fec357ad1b174cb1))
+* decouple official ComfyUI readiness ([#22](https://github.com/dcc-mcp/dcc-mcp-comfyui/issues/22)) ([ff722d8](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/ff722d8a0a17258cbf91a30630bc008f06fcfb7e))
+
+
+### Bug Fixes
+
+* verify quantized image roundtrips ([94ccac8](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/94ccac8265257e74ef8c964be61fcc2bce33d3cd))
+
+
+### Documentation
+
+* add canonical agent quickstart ([#24](https://github.com/dcc-mcp/dcc-mcp-comfyui/issues/24)) ([d80f651](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/d80f651d7f62bf29318c3b4be4c00e1c58ae14fd))
+* add reproducible wooden crate example ([#23](https://github.com/dcc-mcp/dcc-mcp-comfyui/issues/23)) ([4cb7aaf](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/4cb7aafeb853515aef49d2f217c6bae33fe6c63e))
+* clarify local game asset setup and authorization ([7792d05](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/7792d05317b5f1a465c125ddf9f22434a1dcf77e))
+
 ## [0.1.4](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.3...v0.1.4) (2026-08-26)
 
 
