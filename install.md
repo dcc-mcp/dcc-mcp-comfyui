@@ -7,10 +7,10 @@ instructions URL is:
 https://raw.githubusercontent.com/dcc-mcp/dcc-mcp-comfyui/main/install.md
 ```
 
-The adapter service talks to ComfyUI over its local HTTP API. Bounded Load3D
-revision sync also requires the wheel's `dcc_mcp_sync` custom node to exist
-under the target ComfyUI `custom_nodes` directory. HTTP reachability alone does
-not satisfy that contract.
+The adapter's baseline workflow, queue, catalog, upload, and artifact operations
+use only ComfyUI's official local HTTP API. The bundled `dcc_mcp_sync` custom
+node is an optional enhancement for click-to-latest Blender revision sync; its
+absence never disables official API workflows.
 
 ## Offline-host handoff and authorization
 
@@ -46,9 +46,10 @@ within the approved plan.
 
 - Python 3.10 or newer.
 - `dcc-mcp-core>=0.20.8,<1.0.0` in the same interpreter as the adapter.
-- ComfyUI 0.32.0 or newer with the built-in `Load3D` node.
-- The exact ComfyUI root containing `main.py` and `custom_nodes`.
-- A trusted producer export root and the active ComfyUI input root.
+- ComfyUI 0.32.0 or newer for official API workflows.
+- Optional revision sync: built-in `Load3D`, the exact ComfyUI root containing
+  `main.py` and `custom_nodes`, a trusted producer export root, and the active
+  ComfyUI input root.
 
 Install or upgrade the published wheel first:
 
@@ -74,14 +75,15 @@ upgrades of ComfyUI itself remain operator-owned.
 ## Agent quick path
 
 1. Install the published wheel into the exact Python that will run the adapter.
-2. Run `dcc-mcp-comfyui install --json --dry-run --dcc-path <COMFYUI_ROOT>`.
-3. Review the exact root, target, state, receipt, and ordered plan; repeat with
-   `--yes` to commit it.
-4. Restart the same ComfyUI instance without automating or closing its UI.
-5. Configure both bounded sync roots and run
+2. Start official ComfyUI, then run
    `dcc-mcp-comfyui verify --json --comfyui-base-url <ORIGIN>`.
-6. Continue only on exit 0 with `verify.directly_usable: true`; otherwise execute
-   the single `next_steps[].command` argument vector and repeat verification.
+3. Continue official workflows on exit 0 with
+   `capabilities.workflow_ready: true`; neither `Load3D` nor custom nodes are
+   required.
+4. Only for Blender revision sync, plan and install `dcc_mcp_sync`, restart the
+   same ComfyUI instance, configure both bounded roots, and repeat verification.
+5. Treat `capabilities.blender_revision_sync_ready: true` as proof of the
+   optional end-to-end sync contract.
 
 ## Manual path
 
@@ -162,21 +164,24 @@ path:
 dcc-mcp-comfyui status --json
 ```
 
-After restarting ComfyUI, verify the full usable contract:
+Verify the official API contract at any time:
 
 ```bash
 dcc-mcp-comfyui verify --json \
   --comfyui-base-url http://127.0.0.1:8188
 ```
 
-Verification checks the target Python imports and Core floor, bounded sync
-configuration, `/system_stats` and the ComfyUI 0.32.0 floor, live `Load3D`
-discovery, the exact `dcc_mcp_sync` web extension, and its typed latest-revision
-route. `verify.directly_usable=true` is emitted only when every check passes.
+Verification checks target Python imports, the Core floor, `/system_stats`, the
+ComfyUI 0.32.0 floor, `/object_info`, and `/queue`. It reports six independent
+capabilities: `official_api_ready`, `workflow_ready`, `load3d_available`,
+`dcc_sync_extension_installed`, `dcc_sync_extension_loaded`, and
+`blender_revision_sync_ready`. `verify.directly_usable=true` means the official
+workflow API is usable. Missing sync roots, `Load3D`, or `dcc_mcp_sync` are
+reported as an unavailable optional enhancement without changing the exit code.
 
 `doctor --json` performs the same read-only checks and is suitable for support
-and CI diagnostics. A reachable base URL without the typed custom-node route is
-reported as `custom_node_runtime_missing`, not as usable.
+and CI diagnostics. If a receipted extension exists on disk but is not loaded,
+the report remains usable for official workflows and provides one restart step.
 
 ## Upgrade
 
@@ -239,8 +244,9 @@ placeholder.
   model, or application-launcher directory.
 - `target_import_failed` or `core_version_unsupported`: install the adapter and
   supported Core into the exact `--python`, then repeat the read-only plan.
-- `sync_config_missing`: configure both trusted roots. Doctor never guesses or
-  creates them.
+- `sync_config_missing`: official workflows remain available; configure both
+  trusted roots only when Blender revision sync is wanted. Doctor never guesses
+  or creates them.
 - `endpoint_unreachable`: start the intended ComfyUI instance and confirm the
   credential-free base URL. Inspect ComfyUI's own log for startup errors.
 - `base_url_invalid`: pass one credential-free HTTP(S) origin. Embedded URL

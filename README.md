@@ -29,8 +29,9 @@ _Real local capture: Blender sphere -> half-mesh revision -> content-addressed p
 - Asset handoff uploads bounded images with SHA-256 provenance and atomically downloads only artifacts proven to belong to the requested prompt.
 - Artifact discovery is shape-based rather than tied to English labels or an image-only key, so file-shaped image, animation, video, audio, 3D, and custom-node outputs share one bounded contract.
 - `stage_3d_asset` publishes a content-addressed revision from an operator-owned export root and stages it under ComfyUI `input/3d` for `Load3D`.
-- The bundled ComfyUI extension adds a canvas-level **Update to latest DCC revision** action backed by an atomic latest-revision pointer.
-- Standalone discovery, packaged Skill subprocesses, and six-part DCC-MCP readiness are supported out of the box.
+- Official ComfyUI works without custom nodes for workflow validation, queue execution, uploads, and prompt-owned artifact retrieval.
+- The optional bundled ComfyUI extension adds a canvas-level **Update to latest DCC revision** action backed by an atomic latest-revision pointer.
+- Readiness reports official API, workflow, Load3D, extension install/load, and Blender revision-sync capability independently.
 
 The production path was live-validated on ComfyUI 0.32.0 with a three-node `EmptyImage -> ImageInvert -> SaveImage` workflow, including typed validation, execution, status polling, and artifact retrieval.
 
@@ -105,27 +106,29 @@ completes configuration, reconnects the adapter, discovers its tools and runs
 the agreed verification; approval already given for that scope is reused.
 See the [offline-host setup flow](install.md#offline-host-handoff-and-authorization).
 
-See the canonical [agent-first Install SOP](install.md) for JSON doctor,
-transactional custom-node installation, verify, upgrade, and uninstall.
+See the canonical [agent-first Install SOP](install.md) for official API
+verification and optional transactional sync-node installation.
 
 ```bash
 # Install
 pip install dcc-mcp-comfyui
 
-# Install the bundled Load3D sync node (plan first, then repeat with --yes)
-dcc-mcp-comfyui install --json --dry-run --dcc-path /absolute/path/to/ComfyUI
-
 # Start ComfyUI locally (in another terminal)
 python main.py --listen 127.0.0.1
+
+# Verify official workflow readiness; no custom node is required
+dcc-mcp-comfyui verify --json --comfyui-base-url http://127.0.0.1:8188
 
 # Start the MCP server
 dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188
 ```
 
-To enable bounded 3D synchronization, configure both trusted roots before
-starting the adapter:
+To enable the optional bounded 3D synchronization, first plan and install the
+bundled node, restart ComfyUI, then configure both trusted roots:
 
 ```bash
+dcc-mcp-comfyui install --json --dry-run --dcc-path /absolute/path/to/ComfyUI
+# Review the plan, repeat with --yes, and restart ComfyUI.
 set DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT=G:\dcc-sync\exports
 set DCC_MCP_COMFYUI_INPUT_DIR=G:\apps\ComfyUI\input
 dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188

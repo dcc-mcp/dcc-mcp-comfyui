@@ -318,32 +318,36 @@ def _probe_python(python: Path) -> dict[str, Any]:
     return result
 
 
-def _resolve_sync_config(args: argparse.Namespace) -> dict[str, Any]:
+def _inspect_sync_config(args: argparse.Namespace) -> dict[str, Any]:
+    """Inspect optional Blender revision-sync roots without gating the official API."""
     source_value = args.sync_source_root or os.environ.get(ENV_SYNC_SOURCE_ROOT)
     input_value = args.input_dir or os.environ.get(ENV_COMFYUI_INPUT_DIR)
-    missing = []
+    missing: list[str] = []
     if not source_value:
         missing.append(ENV_SYNC_SOURCE_ROOT)
     if not input_value:
         missing.append(ENV_COMFYUI_INPUT_DIR)
     if missing:
-        raise LifecycleError(
-            EXIT_PREFLIGHT,
-            "preflight",
-            "sync_config_missing",
-            f"Required asset-sync configuration is missing: {', '.join(missing)}.",
-        )
+        return {
+            "ready": False,
+            "sync_source_root_configured": bool(source_value),
+            "input_dir_configured": bool(input_value),
+            "failure_reason": "sync_config_missing",
+            "missing": missing,
+        }
     source_root = Path(source_value).expanduser().resolve()
     input_root = Path(input_value).expanduser().resolve()
     for name, path in (("sync_source_root", source_root), ("input_dir", input_root)):
         if not path.is_dir():
-            raise LifecycleError(
-                EXIT_PREFLIGHT,
-                "preflight",
-                f"{name}_missing",
-                f"Configured {name} does not exist: {path}",
-            )
+            return {
+                "ready": False,
+                "sync_source_root_configured": True,
+                "input_dir_configured": True,
+                "failure_reason": f"{name}_missing",
+                "invalid": name,
+            }
     return {
+        "ready": True,
         "sync_source_root_configured": True,
         "input_dir_configured": True,
         "source": {
@@ -356,6 +360,13 @@ def _resolve_sync_config(args: argparse.Namespace) -> dict[str, Any]:
 def _probe_endpoint(base_url: str, timeout: float) -> dict[str, Any]:
     result: dict[str, Any] = {
         "base_url": base_url,
+        "official_api_ready": False,
+        "workflow_ready": False,
+        "load3d_available": False,
+        "dcc_sync_extension_installed": False,
+        "dcc_sync_extension_loaded": False,
+        "blender_revision_sync_ready": False,
+        # Compatibility aliases retained for existing automation.
         "http_ready": False,
         "load3d_ready": False,
         "extension_ready": False,
@@ -381,6 +392,12 @@ def _probe_endpoint(base_url: str, timeout: float) -> dict[str, Any]:
             if not _version_at_least(version, MIN_COMFYUI_VERSION):
                 result["failure_reason"] = "comfyui_version_unsupported"
                 return result
+            result["official_api_ready"] = True
+
+            object_info = client.get(f"{base_url}/object_info")
+            queue = client.get(f"{base_url}/queue")
+            if object_info.is_success and queue.is_success:
+                result["workflow_ready"] = isinstance(object_info.json(), dict) and isinstance(queue.json(), dict)
 
             load3d = client.get(f"{base_url}/object_info/Load3D")
             if load3d.is_success:
@@ -388,6 +405,7 @@ def _probe_endpoint(base_url: str, timeout: float) -> dict[str, Any]:
                 result["load3d_ready"] = isinstance(load3d_payload, dict) and isinstance(
                     load3d_payload.get("Load3D"), dict
                 )
+                result["load3d_available"] = result["load3d_ready"]
 
             extension = client.get(f"{base_url}/extensions/dcc_mcp_sync/dcc_mcp_sync.js")
             result["extension_ready"] = extension.is_success and ("dcc-mcp-sync/latest" in extension.text)
@@ -403,11 +421,10 @@ def _probe_endpoint(base_url: str, timeout: float) -> dict[str, Any]:
         result["failure_reason"] = "endpoint_unreachable"
         result["error"] = f"{type(exc).__name__}: {exc}"
         return result
-    result["sync_node_ready"] = all(result[key] for key in ("load3d_ready", "extension_ready", "sync_route_ready"))
-    if not result["load3d_ready"]:
-        result["failure_reason"] = "load3d_unavailable"
-    elif not result["sync_node_ready"]:
-        result["failure_reason"] = "custom_node_runtime_missing"
+    result["dcc_sync_extension_loaded"] = all(result[key] for key in ("extension_ready", "sync_route_ready"))
+    result["sync_node_ready"] = all(result[key] for key in ("load3d_available", "dcc_sync_extension_loaded"))
+    if not result["workflow_ready"]:
+        result["failure_reason"] = "official_workflow_api_unavailable"
     return result
 
 
@@ -1027,7 +1044,7 @@ def _run_doctor(args: argparse.Namespace, command: str) -> int:
         install_state = _install_state(receipt, root)
         base_url, base_url_source = _normalize_base_url(args.comfyui_base_url)
         python_probe = _probe_python(Path(args.python or sys.executable).resolve())
-        sync_config = _resolve_sync_config(args)
+        sync_config = _inspect_sync_config(args)
         report.update(
             {
                 "adapter_version": python_probe["adapter_version"],
@@ -1073,39 +1090,66 @@ def _run_doctor(args: argparse.Namespace, command: str) -> int:
             ]
             return _emit(args, report, EXIT_VERIFY)
         connectivity = _probe_endpoint(base_url, args.comfyui_timeout)
+        target = root / "custom_nodes" / CUSTOM_NODE_NAME if root is not None else None
+        connectivity["dcc_sync_extension_installed"] = bool(target and target.is_dir())
+        connectivity["blender_revision_sync_ready"] = all(
+            (
+                connectivity["workflow_ready"],
+                connectivity["load3d_available"],
+                connectivity["dcc_sync_extension_loaded"],
+                sync_config["ready"],
+            )
+        )
         report["connectivity"] = connectivity
+        report["capabilities"] = {
+            key: connectivity[key]
+            for key in (
+                "official_api_ready",
+                "workflow_ready",
+                "load3d_available",
+                "dcc_sync_extension_installed",
+                "dcc_sync_extension_loaded",
+                "blender_revision_sync_ready",
+            )
+        }
         report["steps"].extend(
             [
                 {"id": "python-import", "status": "passed"},
-                {"id": "sync-config", "status": "passed"},
+                {"id": "sync-config", "status": "passed" if sync_config["ready"] else "optional"},
                 {
                     "id": "typed-connectivity",
-                    "status": "passed" if connectivity["sync_node_ready"] else "failed",
+                    "status": "passed" if connectivity["workflow_ready"] else "failed",
                 },
             ]
         )
-        if not connectivity["sync_node_ready"]:
+        if not connectivity["workflow_ready"]:
             reason = str(connectivity.get("failure_reason") or "endpoint_unusable")
             _set_failure(
                 report,
                 stage="verify",
                 reason=reason,
                 message=(
-                    "ComfyUI is reachable, but the typed Load3D synchronization contract is not usable."
+                    "ComfyUI is reachable, but its official workflow API contract is not usable."
                     if connectivity["http_ready"]
                     else "ComfyUI did not satisfy the endpoint readiness contract."
                 ),
             )
-            if reason == "custom_node_runtime_missing":
-                if receipt is not None and install_state in {"installed", "upgrade"}:
-                    report["next_steps"] = [_restart_verify_next_step(args)]
-                else:
-                    report["next_steps"] = [_install_next_step(args, missing_path=root is None)]
-            else:
-                report["next_steps"] = [_preflight_recovery_step(args, command, reason)]
+            report["next_steps"] = [_preflight_recovery_step(args, command, reason)]
             return _emit(args, report, EXIT_VERIFY)
         report.update({"status": "ok", "directly_usable": True})
-        report["verify"].update({"directly_usable": True, "failure_stage": None, "failure_reason": None})
+        report["verify"].update(
+            {
+                "directly_usable": True,
+                "failure_stage": None,
+                "failure_reason": None,
+                "official_workflow_ready": True,
+                "blender_revision_sync_ready": connectivity["blender_revision_sync_ready"],
+            }
+        )
+        if not connectivity["blender_revision_sync_ready"]:
+            report["enhancement_status"] = "optional_sync_unavailable"
+            if connectivity["dcc_sync_extension_installed"] and not connectivity["dcc_sync_extension_loaded"]:
+                report["next_steps"] = [_restart_verify_next_step(args)]
         return _emit(args, report, EXIT_OK)
     except LifecycleError as exc:
         _set_failure(
