@@ -5,7 +5,7 @@ metadata:
   dcc-mcp:
     dcc: comfyui
     layer: domain
-    version: "0.1.4" # x-release-please-version
+    version: "0.1.5" # x-release-please-version
     tags: [comfyui, game, image, 3d, pipeline]
     search-hint: "free local game assets UI icons sprites transparent PNG PBR GLB 3D Pixal3D TRELLIS Hunyuan SDXL low VRAM 免费 游戏 素材 图片 模型 本地 显存"
     tools: tools.yaml
