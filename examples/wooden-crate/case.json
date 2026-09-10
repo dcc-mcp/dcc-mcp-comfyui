@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_id": "wooden-crate-sd15-v1",
+  "recipe_id": "sd15",
+  "parameters": {
+    "width": 512,
+    "height": 512,
+    "batch_size": 1,
+    "seed": 174203,
+    "prompt": "Single stylized wooden shipping crate, iron corner brackets, hand-painted fantasy game prop, three-quarter isometric view, centered, readable silhouette, neutral studio background, no text, no people",
+    "negative_prompt": "open lid, treasure chest, multiple objects, blurry, cropped, watermark, logo, text, letters, people, hands, photorealistic scene",
+    "filename_prefix": "examples/wooden-crate"
+  },
+  "models": {
+    "checkpoint": "v1-5-pruned-emaonly.safetensors"
+  },
+  "expected_workflow_sha256": "187de433fa3a476d132fd4ceb05eaa4552328281cbdd50c6cd912fd0efbf7805"
+}

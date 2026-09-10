@@ -37,6 +37,11 @@ The production path was live-validated on ComfyUI 0.32.0 with a three-node `Empt
 
 ## Can ComfyUI MCP generate free game assets locally?
 
+For a complete, auditable first run, use the
+[`wooden-crate` official API example](examples/wooden-crate/README.md). It pins
+the prompt and seed, commits the exact API workflow, and verifies a sealed
+receipt plus every downloaded artifact hash.
+
 Yes, with separately installed models and compatible hardware. These nine recipes
 use local ComfyUI nodes and do not require paid Partner Nodes. Model downloads,
 hardware, electricity and model license conditions still apply. The adapter's MIT
