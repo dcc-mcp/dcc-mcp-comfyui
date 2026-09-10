@@ -27,8 +27,9 @@ DCC-MCP 的 ComfyUI 适配器，让 AI Agent 通过本地 REST API 验证工作�
 - 图片上传包含 SHA-256 来源记录；仅原子下载能证明属于指定 prompt 的产物。
 - 按文件结构发现图片、动画、视频、音频、3D 和自定义节点产物。
 - `stage_3d_asset` 从配置的导出根目录发布按内容寻址的修订，暂存到 ComfyUI `input/3d`。
-- 随包扩展提供画布上的 **Update to latest DCC revision** 操作，通过原子指针定位最新修订。
-- 支持独立发现、打包 Skill 子进程与 DCC-MCP 六项就绪检查。
+- 官方 ComfyUI 无需自定义节点即可完成工作流验证、队列执行、上传和 prompt 归属产物读取。
+- 可选的随包扩展提供画布上的 **Update to latest DCC revision** 操作，通过原子指针定位最新修订。
+- 就绪状态分别报告官方 API、工作流、Load3D、扩展安装/加载和 Blender 修订同步能力。
 
 已有 ComfyUI 0.32.0 的 `EmptyImage → ImageInvert → SaveImage` 实机验证记录，覆盖类型化验证、执行、状态查询和产物读取。
 
@@ -91,20 +92,22 @@ ComfyUI 不在线时，Agent 会先说明连接状态，提供启动/配置已�
 展示计划并等待授权。授权后完成配置、连接适配器、发现工具和约定的验证；已经授权的范围
 不重复询问。[离线宿主配置流程](install.md#offline-host-handoff-and-authorization)。
 
-[安装 SOP](install.md) 包含 JSON doctor、自定义节点事务安装、验证、升级和卸载。
+[安装 SOP](install.md) 包含官方 API 验证，以及可选同步节点的事务安装、升级和卸载。
 
 ```bash
 pip install dcc-mcp-comfyui
-dcc-mcp-comfyui install --json --dry-run --dcc-path /absolute/path/to/ComfyUI
-# 检查安装计划后，使用 --yes 执行。另开终端启动 ComfyUI：
 python main.py --listen 127.0.0.1
+# 验证官方工作流能力，无需安装自定义节点：
+dcc-mcp-comfyui verify --json --comfyui-base-url http://127.0.0.1:8188
 # 启动适配器：
 dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188
 ```
 
-启用有界 3D 同步前，配置两个可信目录（以下为 Windows cmd 示例）：
+启用可选的有界 3D 同步前，先规划并安装随包节点、重启 ComfyUI，再配置两个可信目录：
 
 ```bat
+dcc-mcp-comfyui install --json --dry-run --dcc-path /absolute/path/to/ComfyUI
+rem 检查计划后使用 --yes 执行，并重启 ComfyUI。
 set DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT=G:\dcc-sync\exports
 set DCC_MCP_COMFYUI_INPUT_DIR=G:\apps\ComfyUI\input
 dcc-mcp-comfyui --comfyui-base-url http://127.0.0.1:8188

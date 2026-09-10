@@ -43,6 +43,10 @@ class _HttpWithoutSyncNode:
     def get(self, url, **_kwargs):
         if url.endswith("/system_stats"):
             return _Response(200, {"system": {"comfyui_version": "0.32.0"}, "devices": []})
+        if url.endswith("/object_info"):
+            return _Response(200, {"EmptyImage": {"input": {"required": {}}}})
+        if url.endswith("/queue"):
+            return _Response(200, {"queue_running": [], "queue_pending": []})
         if url.endswith("/object_info/Load3D"):
             return _Response(200, {"Load3D": {"input": {"required": {}}}})
         return _Response(404, {}, "not found")
@@ -54,6 +58,20 @@ class _HttpWithSyncNode(_HttpWithoutSyncNode):
             return _Response(200, text="fetch('/dcc-mcp-sync/latest')")
         if url.endswith("/dcc-mcp-sync/latest"):
             return _Response(404, {}, "no synchronized revision is available")
+        return super().get(url, **kwargs)
+
+
+class _HttpOfficialWithoutLoad3D(_HttpWithoutSyncNode):
+    def get(self, url, **kwargs):
+        if url.endswith("/object_info/Load3D"):
+            return _Response(404, {}, "not found")
+        return super().get(url, **kwargs)
+
+
+class _HttpWithoutWorkflowApi(_HttpWithoutSyncNode):
+    def get(self, url, **kwargs):
+        if url.endswith("/object_info") or url.endswith("/queue"):
+            return _Response(404, {}, "not found")
         return super().get(url, **kwargs)
 
 
@@ -84,7 +102,7 @@ def test_python_probe_fixture_tracks_installed_adapter_version(monkeypatch):
     assert json.loads(completed.stdout)["adapter_version"] == distribution_version("dcc-mcp-comfyui")
 
 
-def test_doctor_does_not_confuse_http_with_load3d_sync_readiness(tmp_path, capsys, monkeypatch):
+def test_doctor_keeps_official_workflow_ready_without_optional_sync_node(tmp_path, capsys, monkeypatch):
     source_root = tmp_path / "exports"
     input_root = tmp_path / "input"
     source_root.mkdir()
@@ -105,43 +123,103 @@ def test_doctor_does_not_confuse_http_with_load3d_sync_readiness(tmp_path, capsy
         ]
     )
 
-    assert exit_code == 40
+    assert exit_code == 0
     report = json.loads(capsys.readouterr().out)
     assert report["schema_version"] == 1
     assert report["command"] == "doctor"
+    assert report["capabilities"]["official_api_ready"] is True
+    assert report["capabilities"]["workflow_ready"] is True
+    assert report["capabilities"]["load3d_available"] is True
+    assert report["capabilities"]["dcc_sync_extension_installed"] is False
+    assert report["capabilities"]["dcc_sync_extension_loaded"] is False
+    assert report["capabilities"]["blender_revision_sync_ready"] is False
     assert report["connectivity"]["http_ready"] is True
     assert report["connectivity"]["load3d_ready"] is True
     assert report["connectivity"]["sync_node_ready"] is False
-    assert report["verify"]["directly_usable"] is False
-    assert report["verify"]["failure_reason"] == "custom_node_runtime_missing"
-    assert len(report["next_steps"]) == 1
-    assert report["next_steps"][0]["command"][:3] == [
-        "dcc-mcp-comfyui",
-        "install",
-        "--json",
-    ]
+    assert report["verify"]["directly_usable"] is True
+    assert report["verify"]["failure_reason"] is None
+    assert report["enhancement_status"] == "optional_sync_unavailable"
+    assert report["next_steps"] == []
 
 
-def test_doctor_missing_config_returns_one_executable_remediation(capsys, monkeypatch):
+def test_doctor_missing_sync_config_does_not_block_official_workflows(capsys, monkeypatch):
     monkeypatch.delenv("DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT", raising=False)
     monkeypatch.delenv("DCC_MCP_COMFYUI_INPUT_DIR", raising=False)
+    monkeypatch.setattr(httpx, "Client", lambda **_kwargs: _HttpWithoutSyncNode())
     _mock_python_probe(monkeypatch)
 
     exit_code = cli.main(["doctor", "--json", "--python", sys.executable])
     report = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 10
-    assert report["exit_code"] == 10
-    assert report["failure_reason"] == "sync_config_missing"
-    assert len(report["next_steps"]) == 1
-    command = report["next_steps"][0]["command"]
-    assert command[:3] == ["dcc-mcp-comfyui", "doctor", "--json"]
-    assert command[-4:] == [
-        "--sync-source-root",
-        "<TRUSTED_EXPORT_ROOT>",
-        "--input-dir",
-        "<COMFYUI_INPUT_ROOT>",
-    ]
+    assert exit_code == 0
+    assert report["exit_code"] == 0
+    assert report["config"]["ready"] is False
+    assert report["config"]["failure_reason"] == "sync_config_missing"
+    assert report["capabilities"]["workflow_ready"] is True
+    assert report["capabilities"]["blender_revision_sync_ready"] is False
+
+
+def test_doctor_official_workflow_does_not_require_load3d(capsys, monkeypatch):
+    monkeypatch.delenv("DCC_MCP_COMFYUI_SYNC_SOURCE_ROOT", raising=False)
+    monkeypatch.delenv("DCC_MCP_COMFYUI_INPUT_DIR", raising=False)
+    monkeypatch.setattr(httpx, "Client", lambda **_kwargs: _HttpOfficialWithoutLoad3D())
+    _mock_python_probe(monkeypatch)
+
+    exit_code = cli.main(["verify", "--json", "--python", sys.executable])
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert report["capabilities"]["official_api_ready"] is True
+    assert report["capabilities"]["workflow_ready"] is True
+    assert report["capabilities"]["load3d_available"] is False
+    assert report["capabilities"]["dcc_sync_extension_loaded"] is False
+    assert report["capabilities"]["blender_revision_sync_ready"] is False
+
+
+def test_doctor_reports_loaded_revision_sync_independently(tmp_path, capsys, monkeypatch):
+    source_root = tmp_path / "exports"
+    input_root = tmp_path / "input"
+    source_root.mkdir()
+    input_root.mkdir()
+    monkeypatch.setattr(httpx, "Client", lambda **_kwargs: _HttpWithSyncNode())
+    _mock_python_probe(monkeypatch)
+
+    exit_code = cli.main(
+        [
+            "doctor",
+            "--json",
+            "--python",
+            sys.executable,
+            "--sync-source-root",
+            str(source_root),
+            "--input-dir",
+            str(input_root),
+        ]
+    )
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert report["capabilities"] == {
+        "official_api_ready": True,
+        "workflow_ready": True,
+        "load3d_available": True,
+        "dcc_sync_extension_installed": False,
+        "dcc_sync_extension_loaded": True,
+        "blender_revision_sync_ready": True,
+    }
+
+
+def test_doctor_fails_when_official_workflow_endpoints_are_missing(capsys, monkeypatch):
+    monkeypatch.setattr(httpx, "Client", lambda **_kwargs: _HttpWithoutWorkflowApi())
+    _mock_python_probe(monkeypatch)
+
+    exit_code = cli.main(["doctor", "--json", "--python", sys.executable])
+    report = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 40
+    assert report["capabilities"]["official_api_ready"] is True
+    assert report["capabilities"]["workflow_ready"] is False
+    assert report["failure_reason"] == "official_workflow_api_unavailable"
 
 
 def test_custom_node_receipt_round_trip_only_uninstalls_owned_files(tmp_path, capsys, monkeypatch):
@@ -279,8 +357,11 @@ def test_doctor_uses_restart_step_for_receipted_node_not_loaded_by_host(tmp_path
     )
     report = json.loads(capsys.readouterr().out)
 
-    assert exit_code == 40
+    assert exit_code == 0
     assert report["install_state"] == "installed"
+    assert report["verify"]["directly_usable"] is True
+    assert report["capabilities"]["dcc_sync_extension_installed"] is True
+    assert report["capabilities"]["dcc_sync_extension_loaded"] is False
     assert report["next_steps"][0]["id"] == "restart-comfyui-and-verify"
 
 
