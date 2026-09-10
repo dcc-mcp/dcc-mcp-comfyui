@@ -71,6 +71,17 @@ jobs:
         run: |
           python -m ruff check .
           python -m ruff format --check .
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: dcc-mcp/dcc-mcp-agent-plugins
+          ref: 54b9d46a9fcefab1ed3a6aafc18da6ab4198ad25
+          path: .agent-plugins
+      - name: Check Agent quickstart
+        run: >-
+          python .agent-plugins/scripts/sync_adapter_readme.py
+          --repository ${{ github.event.repository.name }}
+          --readme README.md
+          --check
       - name: Validate bundled Skills
         run: python scripts/ci/lint_skills.py
       - name: Build and inspect distributions
