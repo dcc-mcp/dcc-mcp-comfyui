@@ -49,6 +49,26 @@ The list must include `dcc_type=comfyui`. If it does not, follow the
 [connection troubleshooting guide](https://github.com/dcc-mcp/dcc-mcp-agent-plugins#adapter-connection-troubleshooting).
 <!-- dcc-mcp-agent-quickstart:end -->
 
+<!-- dcc-mcp-coverage-pointer:start -->
+<!-- Generated from dcc-mcp-catalog.yml by scripts/generate_adapter_pointer.py in dcc-mcp/dcc-mcp-core. Do not edit by hand. -->
+## Part of the DCC-MCP host matrix
+
+**dcc-mcp-comfyui** — ComfyUI adapter with 21 typed workflow, catalog, queue, and
+artifact tools.
+
+It is one of **38 host adapters** in the DCC-MCP catalog. Every adapter speaks the same
+MCP protocol and builds on the same core runtime contract; each one exposes the tools
+its own host needs on top of that.
+
+- [All host adapters and install metadata](https://dcc-mcp.github.io/ecosystem)
+- [Host matrix on the core README](https://github.com/dcc-mcp/dcc-mcp-core#readme)
+- [Showcase](https://dcc-mcp.github.io/showcase)
+
+This block is generated from the catalog entry in
+[`dcc-mcp-catalog.yml`](https://github.com/dcc-mcp/dcc-mcp-core/blob/main/dcc-mcp-catalog.yml).
+Re-run the generator after changing the catalog.
+<!-- dcc-mcp-coverage-pointer:end -->
+
 ## Capabilities
 
 - Nine curated local game-asset recipes cover SD1.5, SDXL, FLUX.2 Klein 4B, Z-Image Turbo, Qwen-Image 2512, BiRefNet cutouts, Hunyuan3D shapes, TRELLIS.2 PBR and Pixal3D PBR. Agents compare hardware and setup requirements, confirm the user's choice, preflight live nodes/models, and submit a bounded PNG/GLB workflow.
