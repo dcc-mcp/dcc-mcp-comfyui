@@ -53,7 +53,7 @@ The list must include `dcc_type=comfyui`. If it does not, follow the
 <!-- Generated from dcc-mcp-catalog.yml by scripts/generate_adapter_pointer.py in dcc-mcp/dcc-mcp-core. Do not edit by hand. -->
 ## Part of the DCC-MCP host matrix
 
-**dcc-mcp-comfyui** — ComfyUI adapter with 17 typed workflow, catalog, queue, and
+**dcc-mcp-comfyui** — ComfyUI adapter with 21 typed workflow, catalog, queue, and
 artifact tools.
 
 It is one of **38 host adapters** in the DCC-MCP catalog. Every adapter speaks the same
