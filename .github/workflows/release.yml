@@ -26,7 +26,17 @@ jobs:
       - id: release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          token: ${{ github.token }}
+          # A head push authenticated with `github.token` is attributed to
+          # `github-actions[bot]`, which GitHub treats as an outside
+          # collaborator: the release PR's CI run is held at `action_required`
+          # with 0 jobs until a human approves it. The org PAT acts as a
+          # collaborator, so its runs start on their own. See dcc-mcp-core and
+          # dcc-mcp-openscad for the same choice.
+          #
+          # No `|| github.token` fallback: a missing or renamed secret must
+          # fail the release loudly rather than silently restore the manual
+          # approval gate.
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 

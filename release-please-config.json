@@ -20,7 +20,12 @@
         "src/dcc_mcp_comfyui/skills/comfyui-catalog/SKILL.md",
         "src/dcc_mcp_comfyui/skills/comfyui-queue/SKILL.md",
         "src/dcc_mcp_comfyui/skills/comfyui-assets/SKILL.md",
-        "src/dcc_mcp_comfyui/skills/comfyui-game-assets/SKILL.md"
+        "src/dcc_mcp_comfyui/skills/comfyui-game-assets/SKILL.md",
+        {
+          "type": "toml",
+          "path": "uv.lock",
+          "jsonpath": "$.package[?(@.name.value=='dcc-mcp-comfyui')].version"
+        }
       ]
     }
   },
