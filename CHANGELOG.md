@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.6](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.5...v0.1.6) (2026-10-06)
+
+
+### Bug Fixes
+
+* **ci:** keep uv.lock in sync with release-please version bumps ([#28](https://github.com/dcc-mcp/dcc-mcp-comfyui/issues/28)) ([2d57e04](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/2d57e041469d953d29052ccc4cccf0a71cba12d1))
+
+
+### Documentation
+
+* **readme:** add the generated DCC-MCP host matrix pointer ([c7b6814](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/c7b6814ec85a77a86e8e2c58e147cef839af1997))
+
 ## [0.1.5](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.4...v0.1.5) (2026-09-10)
 
 
