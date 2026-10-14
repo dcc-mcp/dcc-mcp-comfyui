@@ -47,9 +47,13 @@ def _write_version_files(
     project_name: str = EXPECTED_ROOT_PACKAGE,
     lock_name: str = EXPECTED_ROOT_PACKAGE,
     extra_lock_package: str = "",
+    lock_jsonpath: str | None = None,
 ) -> None:
+    root_config: dict = {"package-name": package_name}
+    if lock_jsonpath is not None:
+        root_config["extra-files"] = [{"type": "toml", "path": "uv.lock", "jsonpath": lock_jsonpath}]
     (root / "release-please-config.json").write_text(
-        json.dumps({"packages": {".": {"package-name": package_name}}}),
+        json.dumps({"packages": {".": root_config}}),
         encoding="utf-8",
     )
     (root / ".release-please-manifest.json").write_text(json.dumps({".": project_version}), encoding="utf-8")
@@ -107,6 +111,84 @@ def test_matching_editable_root_version_is_accepted(tmp_path: Path) -> None:
     _write_version_files(tmp_path, project_version="0.1.2", lock_version="0.1.2")
 
     assert checker.check_uv_lock_consistency(tmp_path) == []
+
+
+UV_LOCK_JSONPATH = "$.package[?(@.name.value=='dcc-mcp-comfyui')].version"
+
+
+def test_real_uv_lock_jsonpath_hits_the_editable_root() -> None:
+    """The configured jsonpath must resolve against the checked-in uv.lock."""
+    checker = _load_checker_module()
+    lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+
+    assert checker._jsonpath_hit_count(lock, UV_LOCK_JSONPATH) >= 1
+
+
+def test_checked_in_config_registers_a_hitting_uv_lock_jsonpath() -> None:
+    """Guard the live config: the registered jsonpath must not silently no-op."""
+    checker = _load_checker_module()
+    config = json.loads((REPO_ROOT / "release-please-config.json").read_text(encoding="utf-8"))
+    lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+
+    registered = checker._uv_lock_extra_file_jsonpath(config)
+    assert registered == UV_LOCK_JSONPATH
+    assert checker._jsonpath_hit_count(lock, registered) >= 1
+
+
+@pytest.mark.parametrize(
+    ("label", "jsonpath"),
+    [
+        ("missing .value", "$.package[?(@.name=='dcc-mcp-comfyui')].version"),
+        ("typo package name", "$.package[?(@.name.value=='dcc-mcp-typo')].version"),
+    ],
+)
+def test_silently_nooping_jsonpath_is_rejected(tmp_path: Path, label: str, jsonpath: str) -> None:
+    """A jsonpath that release-please would warn about must fail the guard."""
+    checker = _load_checker_module()
+    _write_version_files(
+        tmp_path,
+        project_version="0.1.2",
+        lock_version="0.1.2",
+        lock_jsonpath=jsonpath,
+    )
+
+    assert checker._jsonpath_hit_count(checker._load_toml(tmp_path / "uv.lock"), jsonpath) == 0
+    errors = checker.check_uv_lock_consistency(tmp_path)
+    assert len(errors) == 1, errors
+    assert f"jsonpath {jsonpath!r} matches 0 package entries" in errors[0]
+    assert "silently no-op" in errors[0]
+
+
+def test_hitting_jsonpath_passes_the_guard(tmp_path: Path) -> None:
+    """The correct jsonpath keeps the consistency check green."""
+    checker = _load_checker_module()
+    _write_version_files(
+        tmp_path,
+        project_version="0.1.2",
+        lock_version="0.1.2",
+        lock_jsonpath=UV_LOCK_JSONPATH,
+    )
+
+    assert checker.check_uv_lock_consistency(tmp_path) == []
+
+
+def test_unregistered_uv_lock_extra_file_skips_the_jsonpath_guard(tmp_path: Path) -> None:
+    """Without a registered jsonpath there is nothing for this guard to police."""
+    checker = _load_checker_module()
+    _write_version_files(tmp_path, project_version="0.1.2", lock_version="0.1.2")
+
+    assert checker._uv_lock_extra_file_jsonpath(
+        json.loads((tmp_path / "release-please-config.json").read_text(encoding="utf-8"))
+    ) is None
+    assert checker.check_uv_lock_consistency(tmp_path) == []
+
+
+def test_unparseable_jsonpath_counts_as_no_hit() -> None:
+    """An unsupported expression must not be treated as a passing match."""
+    checker = _load_checker_module()
+    lock = {"package": [{"name": EXPECTED_ROOT_PACKAGE, "version": "0.1.2"}]}
+
+    assert checker._jsonpath_hit_count(lock, "$..version") == 0
 
 
 def test_synchronized_root_package_rename_is_rejected(tmp_path: Path) -> None:
