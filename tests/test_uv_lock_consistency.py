@@ -177,9 +177,8 @@ def test_unregistered_uv_lock_extra_file_skips_the_jsonpath_guard(tmp_path: Path
     checker = _load_checker_module()
     _write_version_files(tmp_path, project_version="0.1.2", lock_version="0.1.2")
 
-    assert checker._uv_lock_extra_file_jsonpath(
-        json.loads((tmp_path / "release-please-config.json").read_text(encoding="utf-8"))
-    ) is None
+    config = json.loads((tmp_path / "release-please-config.json").read_text(encoding="utf-8"))
+    assert checker._uv_lock_extra_file_jsonpath(config) is None
     assert checker.check_uv_lock_consistency(tmp_path) == []
 
 
