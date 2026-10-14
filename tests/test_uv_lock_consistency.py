@@ -182,12 +182,50 @@ def test_unregistered_uv_lock_extra_file_skips_the_jsonpath_guard(tmp_path: Path
     assert checker.check_uv_lock_consistency(tmp_path) == []
 
 
-def test_unparseable_jsonpath_counts_as_no_hit() -> None:
-    """An unsupported expression must not be treated as a passing match."""
+def test_unparseable_jsonpath_is_reported_as_unrecognised(tmp_path: Path) -> None:
+    """An unsupported expression must be distinguished from a genuine zero hit."""
     checker = _load_checker_module()
     lock = {"package": [{"name": EXPECTED_ROOT_PACKAGE, "version": "0.1.2"}]}
 
-    assert checker._jsonpath_hit_count(lock, "$..version") == 0
+    assert checker._jsonpath_hit_count(lock, "$..version") is None
+
+    _write_version_files(
+        tmp_path,
+        project_version="0.1.2",
+        lock_version="0.1.2",
+        lock_jsonpath="$..version",
+    )
+    errors = checker.check_uv_lock_consistency(tmp_path)
+    assert len(errors) == 1, errors
+    assert "is not understood by this guard" in errors[0]
+    assert "matches 0 package entries" not in errors[0]
+
+
+def test_jsonpath_tail_must_address_the_version_field(tmp_path: Path) -> None:
+    """A tail other than version would make release-please overwrite the name."""
+    checker = _load_checker_module()
+    jsonpath = "$.package[?(@.name.value=='dcc-mcp-comfyui')].name"
+    _write_version_files(
+        tmp_path,
+        project_version="0.1.2",
+        lock_version="0.1.2",
+        lock_jsonpath=jsonpath,
+    )
+
+    assert checker._jsonpath_hit_count(checker._load_toml(tmp_path / "uv.lock"), jsonpath) is None
+
+    errors = checker.check_uv_lock_consistency(tmp_path)
+    assert len(errors) == 1, errors
+    assert "is not understood by this guard" in errors[0]
+
+
+def test_jsonpath_without_a_tail_is_rejected(tmp_path: Path) -> None:
+    """A filter alone does not name the field release-please must rewrite."""
+    checker = _load_checker_module()
+    jsonpath = "$.package[?(@.name.value=='dcc-mcp-comfyui')]"
+
+    lock = {"package": [{"name": EXPECTED_ROOT_PACKAGE, "version": "0.1.2"}]}
+    assert checker._jsonpath_hit_count(lock, jsonpath) is None
 
 
 def test_synchronized_root_package_rename_is_rejected(tmp_path: Path) -> None:

@@ -127,21 +127,31 @@ _JSONPATH_RE = re.compile(
     r"(?:\.(?P<tail>[A-Za-z_][\w.]*))?"
 )
 
+# release-please rewrites the trailing node in place, so the expression must
+# address the version field. A tail naming anything else, such as `.name`, would
+# overwrite the package name with a version string.
+_JSONPATH_ALLOWED_TAIL = "version"
 
-def _jsonpath_hit_count(lock: dict, expression: str) -> int:
+
+def _jsonpath_hit_count(lock: dict, expression: str) -> int | None:
     """Count nodes the release-please jsonpath resolves to inside uv.lock.
 
     Mirrors the subset of jsonpath-plus semantics release-please relies on for
     extra-files: a root field, one equality filter over an array of tables, and
-    an optional trailing field. The document is evaluated through release-please's
-    tagged view, where a scalar is a ``{start, end, value}`` marker object, so
-    ``@.name.value`` matches while a bare ``@.name`` cannot. Unrecognised
-    expressions count as zero hits so the guard never silently passes on a syntax
-    it does not understand.
+    a trailing ``version`` field. The document is evaluated through
+    release-please's tagged view, where a scalar is a ``{start, end, value}``
+    marker object, so ``@.name.value`` matches while a bare ``@.name`` cannot.
+
+    Returns ``None`` when the expression is not understood, which the caller
+    reports distinctly from a genuine zero-hit result.
     """
     match = _JSONPATH_RE.fullmatch(expression.strip())
     if match is None:
-        return 0
+        return None
+
+    tail = match.group("tail")
+    if tail != _JSONPATH_ALLOWED_TAIL:
+        return None
 
     root_key = match.group("root")
     if not isinstance(lock.get(root_key), list):
@@ -151,7 +161,6 @@ def _jsonpath_hit_count(lock: dict, expression: str) -> int:
     entries = tagged[root_key]
     field = match.group("field")
     expected_name = match.group("name")
-    tail = match.group("tail")
 
     hits = 0
     for entry in entries:
@@ -160,7 +169,7 @@ def _jsonpath_hit_count(lock: dict, expression: str) -> int:
         actual = _resolve_dotted(entry, field)
         if actual is _MISSING or actual != expected_name:
             continue
-        if tail is not None and _resolve_dotted(entry, tail) is _MISSING:
+        if _resolve_dotted(entry, tail) is _MISSING:
             continue
         hits += 1
     return hits
@@ -284,6 +293,11 @@ def check_uv_lock_consistency(root: Path) -> list[str]:
         # tests; this guard only polices jsonpaths that release-please would run.
         return []
     hits = _jsonpath_hit_count(lock, lock_jsonpath)
+    if hits is None:
+        return [
+            f"release-please uv.lock jsonpath {lock_jsonpath!r} is not understood by this guard; "
+            "expected $.<array>[?(@.<field>.value=='<name>')].version"
+        ]
     if hits < 1:
         return [
             f"release-please uv.lock jsonpath {lock_jsonpath!r} matches {hits} package entries; "
