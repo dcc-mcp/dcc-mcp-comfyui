@@ -56,6 +56,144 @@ def _uv_lock_is_regular_file(path: Path) -> bool:
     )
 
 
+class _TaggedScalar:
+    """Marker view of a TOML scalar, mirroring release-please's TaggedTOMLParser.
+
+    release-please parses TOML with a parser that wraps every non-object scalar as
+    ``{start, end, value}``. A jsonpath filter must therefore read ``@.name.value``
+    instead of ``@.name``; the bare form compares an object against a string and
+    can never match.
+    """
+
+    __slots__ = ("start", "end", "value")
+
+    def __init__(self, value: object) -> None:
+        self.start = 0
+        self.end = 0
+        self.value = value
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, _TaggedScalar) and self.value == other.value
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+
+def _tag_scalars(node: object) -> object:
+    """Recursively wrap non-container TOML leaves the way release-please does."""
+    if isinstance(node, dict):
+        return {key: _tag_scalars(value) for key, value in node.items()}
+    if isinstance(node, list):
+        return [_tag_scalars(item) for item in node]
+    return _TaggedScalar(node)
+
+
+class _Missing:
+    """Sentinel for a dotted path segment that does not resolve."""
+
+    __slots__ = ()
+
+
+_MISSING = _Missing()
+
+
+def _resolve_dotted(node: object, dotted: str) -> object:
+    """Resolve ``a.b.c`` against the tagged tree, honouring tag objects.
+
+    A tagged scalar exposes only ``start``/``end``/``value``, so ``name`` yields
+    the tag object itself while ``name.value`` yields the underlying string. That
+    asymmetry is exactly what makes ``.value`` mandatory in release-please
+    filter expressions.
+    """
+    current = node
+    for segment in dotted.split("."):
+        if isinstance(current, _TaggedScalar):
+            if segment == "value":
+                current = current.value
+                continue
+            return _MISSING
+        if isinstance(current, dict):
+            if segment not in current:
+                return _MISSING
+            current = current[segment]
+            continue
+        return _MISSING
+    return current
+
+
+_JSONPATH_RE = re.compile(
+    r"\$\.(?P<root>[A-Za-z_][\w-]*)"
+    r"\[\?\(@\.(?P<field>[A-Za-z_][\w.-]*)=='(?P<name>[^']*)'\)\]"
+    r"(?:\.(?P<tail>[A-Za-z_][\w.]*))?"
+)
+
+# release-please rewrites the trailing node in place, so the expression must
+# address the version field. A tail naming anything else, such as `.name`, would
+# overwrite the package name with a version string.
+_JSONPATH_ALLOWED_TAIL = "version"
+
+
+def _jsonpath_hit_count(lock: dict, expression: str) -> int | None:
+    """Count nodes the release-please jsonpath resolves to inside uv.lock.
+
+    Mirrors the subset of jsonpath-plus semantics release-please relies on for
+    extra-files: a root field, one equality filter over an array of tables, and
+    a trailing ``version`` field. The document is evaluated through
+    release-please's tagged view, where a scalar is a ``{start, end, value}``
+    marker object, so ``@.name.value`` matches while a bare ``@.name`` cannot.
+
+    Returns ``None`` when the expression is not understood, which the caller
+    reports distinctly from a genuine zero-hit result.
+    """
+    match = _JSONPATH_RE.fullmatch(expression.strip())
+    if match is None:
+        return None
+
+    tail = match.group("tail")
+    if tail != _JSONPATH_ALLOWED_TAIL:
+        return None
+
+    root_key = match.group("root")
+    if not isinstance(lock.get(root_key), list):
+        return 0
+
+    tagged = _tag_scalars(lock)
+    entries = tagged[root_key]
+    field = match.group("field")
+    expected_name = match.group("name")
+
+    hits = 0
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        actual = _resolve_dotted(entry, field)
+        if actual is _MISSING or actual != expected_name:
+            continue
+        if _resolve_dotted(entry, tail) is _MISSING:
+            continue
+        hits += 1
+    return hits
+
+
+def _uv_lock_extra_file_jsonpath(release_config: dict) -> str | None:
+    """Return the jsonpath release-please applies to uv.lock, if registered."""
+    packages = release_config.get("packages")
+    if not isinstance(packages, dict):
+        return None
+    configured_root = packages.get(".")
+    if not isinstance(configured_root, dict):
+        return None
+    extra_files = configured_root.get("extra-files")
+    if not isinstance(extra_files, list):
+        return None
+    for entry in extra_files:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("path") == "uv.lock" and isinstance(entry.get("jsonpath"), str):
+            return entry["jsonpath"]
+    return None
+
+
 def check_uv_lock_consistency(root: Path) -> list[str]:
     """Return stable errors for release metadata and editable-root lock drift."""
     config_path = root / "release-please-config.json"
@@ -146,6 +284,24 @@ def check_uv_lock_consistency(root: Path) -> list[str]:
     if lock_version != expected_version:
         return [
             f"uv.lock editable root {EXPECTED_ROOT_PACKAGE} version {lock_version!r} != expected {expected_version!r}"
+        ]
+
+    lock_jsonpath = _uv_lock_extra_file_jsonpath(release_config)
+    if lock_jsonpath is None:
+        # uv.lock is not registered as an extra-file, so there is no jsonpath to
+        # validate. Registration coverage is asserted separately by the workflow
+        # tests; this guard only polices jsonpaths that release-please would run.
+        return []
+    hits = _jsonpath_hit_count(lock, lock_jsonpath)
+    if hits is None:
+        return [
+            f"release-please uv.lock jsonpath {lock_jsonpath!r} is not understood by this guard; "
+            "expected $.<array>[?(@.<field>.value=='<name>')].version"
+        ]
+    if hits < 1:
+        return [
+            f"release-please uv.lock jsonpath {lock_jsonpath!r} matches {hits} package entries; "
+            "release-please would warn and silently no-op, leaving uv.lock stale"
         ]
     return []
 
