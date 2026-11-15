@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.7](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.6...v0.1.7) (2026-11-15)
+
+
+### Documentation
+
+* refresh the generated DCC-MCP host matrix pointer ([1ac986e](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/1ac986e8e3487489c9c6fb28d87829d29c814e98))
+* refresh the generated DCC-MCP host matrix pointer ([b0818f7](https://github.com/dcc-mcp/dcc-mcp-comfyui/commit/b0818f7cd31cc90c626caeed9f40d0f84c0411fb))
+
 ## [0.1.6](https://github.com/dcc-mcp/dcc-mcp-comfyui/compare/v0.1.5...v0.1.6) (2026-10-17)
 
 
