@@ -255,3 +255,7 @@ MCP Client → Gateway (:9765) → ComfyUiMcpServer (OS port)
 ## License
 
 MIT
+
+## Attribution and trademarks
+
+Repository-owned adapter source remains under the existing MIT license in [LICENSE](LICENSE). ComfyUI, model weights, generated assets, and other dependencies retain their own license terms. Commercial distribution contact is welcome and is not required. See [NOTICE](NOTICE) and [TRADEMARKS.md](TRADEMARKS.md).
